@@ -1,0 +1,3 @@
+[submodule "c-interfaces-and-implementations"]
+	path = c-interfaces-and-implementations
+	url = git@github.com:drh/cii.git
