@@ -125,3 +125,7 @@ POSIX=-DPOSIX
 
 # if you don't have strerror() in your C library, uncomment the following line:
 #NOSTRERROR= -DNOSTRERROR
+
+# Local Variables:
+# mode: makefile
+# End:
