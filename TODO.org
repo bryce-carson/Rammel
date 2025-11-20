@@ -1,0 +1,470 @@
+* Noweb build-time configuration
+
+Convert all of the following configuration items into well-written Premake
+configuration code.
+
+#+begin_src makefile
+  # How should Noweb run external pipelines?
+  #   fork    Unix fork and Unix pipelines
+  #   spawn   Run programs sequentially using spawn and temporary files
+  PIPE=spawn
+#+end_src
+
+For the next while the first set of macros are for a unix environment and
+the set of commented out macros are for a windows environment.
+
+** Installation Instructions (site build configuration)
+
+- bindir :: binary file directory; BINDIR is where the no command lands.
+- texinputs :: TeX input files; TEXINPUTS is where to place the La/TeX styles/macros following the TDS.
+- lib3 :: Noweb 3 library; LIB3 is where Noweb 3 scripts and configuration files go.
+
+** Lua kludges
+I don't understand the kludge.
+
+#+begin_src makefile
+  # Lua kludges --- here because we know we are moving to Lua 5.
+  LuaMakefile=
+  #LuaMakefile=-f Makefile.win
+#+end_src
+
+** Furhter system (site) information
+
+- shell :: =/bin/sh=, the command shell; POSIX sh or BASH?
+- CINAME ::
+- CIMSG ::
+- NUL :: the null device, where shit goes to die.
+- make :: =make=, the name of and arguments to the Make binary.
+
+** Compilation information
+
+- C compiler
+- C compiler flags
+- Extra C compiler flags
+- Output object file type
+
+#+begin_src makefile
+  CC=gcc
+  CFLAGS=-ansi -pedantic -std=c11 -c -o
+  XCFLAGS=-DPLATFORM='"$(PLATFORM)"' -Dnw_$(PLATFORM) -DNWDEFAULTDIR='"$(LIB3)"'
+  O=.o
+  #CC=cl
+  #CFLAGS=/nologo -MTd /c /Fo:
+  #XCFLAGS=-DPLATFORM="\"$(PLATFORM)\"" -Dnw_$(PLATFORM) -DWIN32="1" -DNWDEFAULTDIR="\"c:\\users\\Public\\documents\\noweb3\\bin\""
+  #O=.obj
+#+end_src
+
+*** Linking information
+#+begin_src makefile
+  # link
+  LD=gcc
+  LFLAGS=-o
+  LIBPROLOG=
+  LIBEPILOG=-lm
+  E=
+  #LD=cl
+  #LFLAGS=/nologo /Fe:
+  #LIBPROLOG=/link
+  #LIBEPILOG=
+  #E=.exe
+#+end_src
+
+
+** AR, whatever that is
+#+begin_src makefile
+  # AR
+  # There is a space after the rv in the following line.
+  # This is both deliberate and required.
+  AR=ar rv 
+  A=.a
+  #AR=lib -nologo -out:
+  #A=.lib
+#+end_src
+
+** General system commands
+#+begin_src makefile
+  # general commands
+  RMDIR=rm -f -r
+  RM=rm -f
+  CP=cp
+  CPR=cp -r
+  #RMDIR=rmdir /s /q
+  #RM=del /q
+  #CP=copy
+  #CPR=xcopy /s
+#+end_src
+
+** Noweb's /nocond/
+#+begin_src makefile
+  # nocond
+  NOCOND=$(LIB3)/tools/nocond
+  #NOCOND=$(LIB3)\tools\nocond
+#+end_src
+
+** Libraries
+- ranlib
+- cii
+
+#+begin_src makefile
+  ################################################################
+  #  Other configuration information
+
+  # if your system doesn't have ranlib, change "ranlib" to "true"
+  RANLIB=ranlib
+  #RANLIB=echo
+
+  # set the alignment (in bytes) of pointers returned by malloc
+  # see cii/install.html for more
+  #CIIMAXALIGN=8		# Sparc, Alpha
+  CIIMAXALIGN=4		# Linux x86, Windows
+
+  # Most Windows environments will want to comment everything following this.
+
+  # in SunOs 4.1.x, uncomment the following line to avoid prototypes warnings
+  # for standard functions
+  #XINCLUDES=-I/usr/5include
+
+  # if you don't have popen() in your C library, comment the following line:
+  POPEN=-DPOPEN
+
+  # if your C library is not POSIX compliant, comment the following line:
+  POSIX=-DPOSIX
+
+  # if you don't have strerror() in your C library, uncomment the following line:
+  #NOSTRERROR= -DNOSTRERROR
+#+end_src
+
+** Historical configuration unnecessary when using Premake
+*** Paths
+#+begin_src makefile
+  # What file and PATH conventions should Noweb use (unix or win)?
+  PLATFORM=unix
+  P=/
+  #PLATFORM=win
+  #P=^\
+#+end_src
+
+* Premake
+#+begin_src makefile
+  # TODO: convert all of the following into Premake configuration.
+  # Stop editing.  No user-serviceable parts below.
+
+  all: code scripts styles
+
+  bootstrap:
+  	-mkdir $(LIB3)$(P)tools 2>$(NUL)
+  	cd tools && $(MK) "OUTPUT=$(LIB3)$(P)tools" && cd ..
+
+  ciilib:
+  	-mkdir $(LIB3)$(P)cii 2>$(NUL)
+  	cd cii && $(MK) "OUTPUT=$(LIB3)$(P)cii" && cd ..
+
+  lualib:
+  	-mkdir $(LIB3)$(P)lua-2.5 2>$(NUL)
+  	cd lua-2.5 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-2.5" && cd ..
+
+  lualib3:
+  	-mkdir $(LIB3)$(P)lua-3.0 2>$(NUL)
+  	cd lua-3.0 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-3.0" && cd ..
+
+  code: bootstrap ciilib lualib
+  	-mkdir $(LIB3)$(P)c 2>$(NUL)
+  	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+
+  scripts: bootstrap
+  	-mkdir $(LIB3)$(P)lua 2>$(NUL)
+  	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+
+  styles: bootstrap
+  	-mkdir $(LIB3)$(P)tex 2>$(NUL)
+  	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+
+  careful:
+  	$(MK) clobber
+  	$(MK) all clean
+  	-$(RMDIR) $(LIB3)$(P)first 2>$(NUL)
+  	mkdir $(LIB3)$(P)first
+  	mkdir $(LIB3)$(P)first$(P)c
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)first$(P)c
+  	mkdir $(LIB3)$(P)first$(P)lua
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)first$(P)lua
+  	mkdir $(LIB3)$(P)first$(P)tex
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)first$(P)tex
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib
+  	-mkdir $(LIB3)$(P)c 2>$(NUL)
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)first$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	-mkdir $(LIB3)$(P)lua 2>$(NUL)
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=$(LIB3)$(P)first$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	-mkdir $(LIB3)$(P)tex 2>$(NUL)
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=$(LIB3)$(P)first$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	echo At this point we are attempting to build the literate version.
+  	echo It may fail if you have not previously installed noweb.sty.
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	-$(RMDIR) $(LIB3)$(P)first
+  	$(MK) all clean
+
+  transfer:
+  #	make 2 from bootstrap
+  	$(MK) clobber
+  	$(MK) all
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	mkdir $(LIB3)$(P)2b
+  	mkdir $(LIB3)$(P)2b$(P)c
+  	mkdir $(LIB3)$(P)2b$(P)lua
+  	mkdir $(LIB3)$(P)2b$(P)tex
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)2b$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)2b$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)2b$(P)tex
+  	$(MK) clean
+  #	make 3 from bootstrap
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib3
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	mkdir $(LIB3)$(P)3b
+  	mkdir $(LIB3)$(P)3b$(P)c
+  	mkdir $(LIB3)$(P)3b$(P)lua
+  	mkdir $(LIB3)$(P)3b$(P)tex
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)3b$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)3b$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)3b$(P)tex
+  	$(MK) clean
+  #	make 2 from 2
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)22
+  	mkdir $(LIB3)$(P)22$(P)c
+  	mkdir $(LIB3)$(P)22$(P)lua
+  	mkdir $(LIB3)$(P)22$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=$(LIB3)$(P)2b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)22$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)22$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)22$(P)tex
+  	$(MK) clean
+  #	make 3 from 2
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib3
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)32
+  	mkdir $(LIB3)$(P)32$(P)c
+  	mkdir $(LIB3)$(P)32$(P)lua
+  	mkdir $(LIB3)$(P)32$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=$(LIB3)$(P)2b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)32$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)32$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)32$(P)tex
+  	$(MK) clean
+  #	make 2 from 3
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)23
+  	mkdir $(LIB3)$(P)23$(P)c
+  	mkdir $(LIB3)$(P)23$(P)lua
+  	mkdir $(LIB3)$(P)23$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=$(LIB3)$(P)3b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)23$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)23$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)23$(P)tex
+  	$(MK) clean
+  #	make 3 from 3
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib3
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)33
+  	mkdir $(LIB3)$(P)33$(P)c
+  	mkdir $(LIB3)$(P)33$(P)lua
+  	mkdir $(LIB3)$(P)33$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=$(LIB3)$(P)3b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)33$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)33$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)33$(P)tex
+  	$(MK) clean
+  	$(MK) checkclean
+  	echo Let's see how different it is.
+  	pause
+  	$(MK) checkdifferent
+  	echo Let's see how similar it is.
+  	pause
+  	$(MK) checksame
+  	pause
+
+  checkclean:
+  	$(RM) $(LIB3)$(P)2b\c\*.exe $(LIB3)$(P)2b\c\*.log $(LIB3)$(P)2b\c\*.obj $(LIB3)$(P)2b\c\*.pdf
+  	$(RM) $(LIB3)$(P)22\c\*.exe $(LIB3)$(P)22\c\*.log $(LIB3)$(P)22\c\*.obj $(LIB3)$(P)22\c\*.pdf
+  	$(RM) $(LIB3)$(P)23\c\*.exe $(LIB3)$(P)23\c\*.log $(LIB3)$(P)23\c\*.obj $(LIB3)$(P)23\c\*.pdf
+  	$(RM) $(LIB3)$(P)3b\c\*.exe $(LIB3)$(P)3b\c\*.log $(LIB3)$(P)3b\c\*.obj $(LIB3)$(P)3b\c\*.pdf
+  	$(RM) $(LIB3)$(P)32\c\*.exe $(LIB3)$(P)32\c\*.log $(LIB3)$(P)32\c\*.obj $(LIB3)$(P)32\c\*.pdf
+  	$(RM) $(LIB3)$(P)33\c\*.exe $(LIB3)$(P)33\c\*.log $(LIB3)$(P)33\c\*.obj $(LIB3)$(P)33\c\*.pdf
+
+  checkdifferent:
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)3b
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)33
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)3b
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)33
+  	windiff $(LIB3)$(P)23 $(LIB3)$(P)3b
+  	windiff $(LIB3)$(P)23 $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)23 $(LIB3)$(P)33
+
+  checksame:
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)22
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)23
+  	windiff $(LIB3)$(P)3b $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)32 $(LIB3)$(P)33
+
+  pdf: install
+  	-mkdir $(LIB3)$(P)c 2>$(NUL)
+  	cd c && $(MK) "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+
+  everything: all todo.html
+
+  install: install-code install-scripts install-styles
+
+  install-code: code
+  	$(CP) $(LIB3)$(P)c$(P)no$(E) $(BINDIR)
+  	$(CP) $(LIB3)$(P)c$(P)nwmtime$(E) $(BINDIR)
+
+  install-scripts: scripts
+  	$(CP) $(LIB3)$(P)lua$(P)* $(BINDIR)
+
+  install-styles: styles
+  	$(CP) $(LIB3)$(P)tex$(P)noweb.sty $(TEXINPUTS)$(P)latex$(P)misc$(P)noweb.sty
+  	$(CP) $(LIB3)$(P)tex$(P)nwmac.tex $(TEXINPUTS)$(P)generic$(P)misc$(P)nwmac.tex
+
+  $(LIB3)$(P)todo.html: bootstrap todo.nw
+  	no weave -html todo.nw | $(LIB3)$(P)tools$(P)l2htodo > $(LIB3)$(P)todo.html
+
+  # Not configurable by nwconfig because this is an author only command.
+  www: $(LIB3)$(P)todo.html
+  	$(CP) $(LIB3)$(P)todo.html /home/cellar/nr/www/noweb/todo3.html
+
+  clean:
+  	cd tools && $(MK) "OUTPUT=$(LIB3)$(P)tools" clobber && cd ..
+  	-$(RMDIR) $(LIB3)$(P)tools 2>$(NUL)
+  	cd cii && $(MK) "OUTPUT=$(LIB3)$(P)cii" clobber && cd ..
+  	-$(RMDIR) $(LIB3)$(P)cii 2>$(NUL)
+  	cd lua-2.5 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-2.5" clobber && cd ..
+  	-$(RMDIR) $(LIB3)$(P)lua-2.5 2>$(NUL)
+  	cd c && $(MK) "OUTPUT=$(LIB3)$(P)c" clean && cd ..
+  	cd lua && $(MK) "OUTPUT=$(LIB3)$(P)lua" clean && cd ..
+  	cd tex && $(MK) "OUTPUT=$(LIB3)$(P)tex" clean && cd ..
+  	-$(RM) *~ 2>$(NUL)
+
+  clobber: clean
+  	cd c && $(MK) "OUTPUT=$(LIB3)$(P)c" clobber && cd ..
+  	-$(RMDIR) $(LIB3)$(P)c 2>$(NUL)
+  	cd lua && $(MK) "OUTPUT=$(LIB3)$(P)lua" clobber && cd ..
+  	-$(RMDIR) $(LIB3)$(P)lua 2>$(NUL)
+  	cd tex && $(MK) "OUTPUT=$(LIB3)$(P)tex" clobber && cd ..
+  	-$(RMDIR) $(LIB3)$(P)tex 2>$(NUL)
+  	-$(RM) *.html 2>$(NUL)
+#+end_src
+* Normal Ramsey's old TODO, or "Things to be done for noweb 3"
+:PROPERTIES:
+:CUSTOM_ID: things-to-be-done-for-noweb-3
+:END:
+
+#+begin_center
+Last serious update: July, 2000
+#+end_center
+
+Noweb 3 is almost ready to come out of alpha and become beta software. The
+essential things are to get /new manual pages/ and /better configuration/.
+
+To volunteer for one of these tasks, or for something else you think needs
+doing, send mail to [[mailto:nr@eecs.harvard.edu][Norman Ramsey.]]
+
+The tasks are in rough order of priority.
+
+| What     | Who    | Status     | Details                                                                                                                                                                                           |
+|----------+--------+------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| man      |        |            | Write man pages, especially documenting new options and filters.                                                                                                                                  |
+| config   |        |            | Improve configuration. Ideally, bundle scripts in binary.                                                                                                                                         |
+| winmake  |        |            | Come up with Makefiles that work on Windows.                                                                                                                                                      |
+| port     |        |            | Write porting instructions.                                                                                                                                                                       |
+| Mac      |        |            | Do a Mac port.                                                                                                                                                                                    |
+| DOS      |        |            | Do a DOS port.                                                                                                                                                                                    |
+| Win32    |        |            | Do a Win32 port (Windows 95/98/NT).                                                                                                                                                               |
+| sort     |        |            | Come up with a sorting method that is consistent with noweb 2.9                                                                                                                                   |
+| untangle |        | incomplete | Replace nw2 nountangle script with docs2comments filter in Lua, taking ideas from unreleased Icon docs2comments filter. Begun but not finished.                                                   |
+| autodefs |        |            | Rewrite the autodefs machinery in Lua, plus a couple of language-specific filters.\\                                                                                                              |
+| Rat      | nrnrnr |            | Write rationale and overview for Hacker's Guide.                                                                                                                                                  |
+| Ints     |        |            | Document Lua interfaces for pipeline, buffer. How to use interfaces to build a pipeline. How to use interfaces to write a stage.                                                                  |
+| Stages   |        |            | Document Lua functions for standard stages.                                                                                                                                                       |
+| count    |        |            | Rewrite nocount in Lua to serve as an example for Hacker's Guide (also for distribution).                                                                                                         |
+| stdfil   |        |            | Develop an army of standard filters, to include, e.g., nocond, nwdate, the stupid C header trick, etc.                                                                                            |
+| order    | nrnrnr | ugh        | Get the order of arguments for stages straight once and for all. Closure args should come last so they can be optional.                                                                           |
+| Mcomb    |        |            | Merge markup.nw into markparse.nw. Trim redundant code. Try to control mutation so that strsave is not needed. (possibly use Str or Atom)                                                         |
+| unmarkup |        |            | Test the converted unmarkup pipeline stage.                                                                                                                                                       |
+| Lua+nw   |        |            | Document the =case= and =globmatch= extensions to Lua 2.5                                                                                                                                         |
+| Basis    |        |            | Document the "initial basis" of stuff available for people writing Lua code for noweb (lists, environments, others...).                                                                           |
+| filman   |        |            | Write man page for users of noweb filters (as opposed to Hacker's Guide). For example, a filter should replace the =nountangle= command.                                                          |
+| sys      |        |            | Figure out how to reorganize the C code to minimize and isolate system dependencies.                                                                                                              |
+| clean    |        |            | Find ways to rationalize, reorganize, and reduce the code. Figure out how to exploit the presence of CII.                                                                                         |
+| strip    |        |            | Strip exceptions out of CII.                                                                                                                                                                      |
+| perf     |        |            | Do performance studies and figure out how to make things run blazingly fast.                                                                                                                      |
+| man      |        |            | Revise the Version 2 man pages. Look for features to eliminate.                                                                                                                                   |
+| fileglob |        |            | Find a way of doing globbing expansion of file names (need a list of files in a given directory). (Needed to support -showautodefs). NR has some old Unix code from a course he taught years ago. |
+| ifdef    |        |            | Use the new stupid noweb trick to insert [[#ifdef]] in headers automatically.                                                                                                                         |
+| Str      |        |            | Create Lua bindings for Hanson's string scanning, which should simplify porting old Icon code.                                                                                                    |
+
+** Things that have actually been done
+:PROPERTIES:
+:CUSTOM_ID: things-that-have-actually-been-done
+:END:
+
+| What   | Who    | Status | Details                                                                                                                                                     |
+|--------+--------+--------+-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Pipe   | nrnrnr | DONE   | Eliminate source and sink types from MPipe, IPipe (but keeping dynamic type distinction for Lua code). Seek dramatic reduction in sizes of implementations. |
+| totex  | nrnrnr | DONE   | Convert totex from Icon to Lua.                                                                                                                             |
+| tohtml | nrnrnr | DONE   | Convert tohtml from Icon to Lua.                                                                                                                            |
+| noidx  | nrnrnr | DONE   | Convert noidx from Icon to Lua.                                                                                                                             |
+
+* limake
+This is someone's make-wrapping shell script.
+#+begin_src shell
+  #!/bin/sh
+  if [ $# -eq 0 ]; then set all install; fi  # "$@" breaks make for empty args
+  /usr/bin/make CC="gcc -ansi -pedantic" XCFLAGS=-DTEMPNAM BINDIR=/usr/local/bin LIB3=/usr/local/lib/noweb3 MAN=/usr/local/man TEXINPUTS=/usr/share/texmf/tex/latex/local ELISP=$HOME/emacs "$@"
+#+end_src

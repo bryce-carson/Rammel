@@ -1,3 +1,0 @@
-#!/bin/sh
-if [ $# -eq 0 ]; then set all install; fi  # "$@" breaks make for empty args
-/usr/bin/make CC="gcc -ansi -pedantic" XCFLAGS=-DTEMPNAM BINDIR=/usr/local/bin LIB3=/usr/local/lib/noweb3 MAN=/usr/local/man TEXINPUTS=/usr/share/texmf/tex/latex/local ELISP=$HOME/emacs "$@"
