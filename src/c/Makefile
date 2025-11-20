@@ -10,6 +10,8 @@ include ../nwconfig
 
 CII=../cii
 
+# src/vendor/c-interfaces-and-implementations/include
+# src/vendor/lua/include
 INCS=-I$(CII)$(P)include -I$(LUA)$(P)include
 
 # after installation, make doc for literate version

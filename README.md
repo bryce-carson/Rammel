@@ -6,11 +6,11 @@ Rammel is:
 
 Rammel is a copyrighten work derived from
 [Norman Ramsey's Noweb](https://github.com/nrnrnr/noweb3),
-version three (the Lua version),
-a copyrighten work.
-Noweb is available free for any use in any field of endeavor.
-The *original `COPYRIGHT` file contents* of Norman Ramsey's Noweb 3 are quoted
-below.
+version three (the Lua version), a copyrighten work.
+Noweb is available free for any use in any field of endeavor. The *original
+`COPYRIGHT` file **contents*** of Norman Ramsey's Noweb 3 are quoted below;
+Rammel is a derivative work with its own name, so the COPYRIGHT file needn't be
+retained, only the notice below.
 
 > Noweb is copyright 1989-2015 by Norman Ramsey.  All rights reserved.
 >

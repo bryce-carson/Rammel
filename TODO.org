@@ -270,153 +270,6 @@ easier, or more fun, than editing a Makefile formatted with comments.
      }
 #+end_src
 
-* Noweb build-time configuration
-
-Convert all of the following configuration items into well-written Premake
-configuration code.
-
-#+begin_src makefile
-  # How should Noweb run external pipelines?
-  #   fork    Unix fork and Unix pipelines
-  #   spawn   Run programs sequentially using spawn and temporary files
-  PIPE=spawn
-#+end_src
-
-For the next while the first set of macros are for a unix environment and
-the set of commented out macros are for a windows environment.
-
-** Installation Instructions (site build configuration)
-
-- bindir :: binary file directory; BINDIR is where the no command lands.
-- texinputs :: TeX input files; TEXINPUTS is where to place the La/TeX styles/macros following the TDS.
-- lib3 :: Noweb 3 library; LIB3 is where Noweb 3 scripts and configuration files go.
-
-** Lua kludges
-I don't understand the kludge.
-
-#+begin_src makefile
-  # Lua kludges --- here because we know we are moving to Lua 5.
-  LuaMakefile=
-  #LuaMakefile=-f Makefile.win
-#+end_src
-
-** Furhter system (site) information
-
-- shell :: =/bin/sh=, the command shell; POSIX sh or BASH?
-- CINAME ::
-- CIMSG ::
-- NUL :: the null device, where shit goes to die.
-- make :: =make=, the name of and arguments to the Make binary.
-
-** Compilation information
-
-- C compiler
-- C compiler flags
-- Extra C compiler flags
-- Output object file type
-
-#+begin_src makefile
-  CC=gcc
-  CFLAGS=-ansi -pedantic -std=c11 -c -o
-  XCFLAGS=-DPLATFORM='"$(PLATFORM)"' -Dnw_$(PLATFORM) -DNWDEFAULTDIR='"$(LIB3)"'
-  O=.o
-  #CC=cl
-  #CFLAGS=/nologo -MTd /c /Fo:
-  #XCFLAGS=-DPLATFORM="\"$(PLATFORM)\"" -Dnw_$(PLATFORM) -DWIN32="1" -DNWDEFAULTDIR="\"c:\\users\\Public\\documents\\noweb3\\bin\""
-  #O=.obj
-#+end_src
-
-*** Linking information
-#+begin_src makefile
-  # link
-  LD=gcc
-  LFLAGS=-o
-  LIBPROLOG=
-  LIBEPILOG=-lm
-  E=
-  #LD=cl
-  #LFLAGS=/nologo /Fe:
-  #LIBPROLOG=/link
-  #LIBEPILOG=
-  #E=.exe
-#+end_src
-
-
-** AR, whatever that is
-#+begin_src makefile
-  # AR
-  # There is a space after the rv in the following line.
-  # This is both deliberate and required.
-  AR=ar rv 
-  A=.a
-  #AR=lib -nologo -out:
-  #A=.lib
-#+end_src
-
-** General system commands
-#+begin_src makefile
-  # general commands
-  RMDIR=rm -f -r
-  RM=rm -f
-  CP=cp
-  CPR=cp -r
-  #RMDIR=rmdir /s /q
-  #RM=del /q
-  #CP=copy
-  #CPR=xcopy /s
-#+end_src
-
-** Noweb's /nocond/
-#+begin_src makefile
-  # nocond
-  NOCOND=$(LIB3)/tools/nocond
-  #NOCOND=$(LIB3)\tools\nocond
-#+end_src
-
-** Libraries
-- ranlib
-- cii
-
-#+begin_src makefile
-  ################################################################
-  #  Other configuration information
-
-  # if your system doesn't have ranlib, change "ranlib" to "true"
-  RANLIB=ranlib
-  #RANLIB=echo
-
-  # set the alignment (in bytes) of pointers returned by malloc
-  # see cii/install.html for more
-  #CIIMAXALIGN=8		# Sparc, Alpha
-  CIIMAXALIGN=4		# Linux x86, Windows
-
-  # Most Windows environments will want to comment everything following this.
-
-  # in SunOs 4.1.x, uncomment the following line to avoid prototypes warnings
-  # for standard functions
-  #XINCLUDES=-I/usr/5include
-
-  # if you don't have popen() in your C library, comment the following line:
-  POPEN=-DPOPEN
-
-  # if your C library is not POSIX compliant, comment the following line:
-  POSIX=-DPOSIX
-
-  # if you don't have strerror() in your C library, uncomment the following line:
-  #NOSTRERROR= -DNOSTRERROR
-#+end_src
-
-** Historical configuration unnecessary when using Premake
-*** Paths
-#+begin_src makefile
-  # What file and PATH conventions should Noweb use (unix or win)?
-  PLATFORM=unix
-  P=/
-  #PLATFORM=win
-  #P=^\
-#+end_src
-
-* Premake
 #+begin_src makefile
   # TODO: convert all of the following into Premake configuration.
   # Stop editing.  No user-serviceable parts below.
@@ -672,6 +525,170 @@ I don't understand the kludge.
   	-$(RMDIR) $(LIB3)$(P)tex 2>$(NUL)
   	-$(RM) *.html 2>$(NUL)
 #+end_src
+** Premake requirements
+- Set the LaTeX renderer (if any).
+- Configure a local markdown renderer or bundle libre rendering JavaScript in HTML exports of Markdown documented webs.
+*** Rendering the literate document sources
+#+begin_src lua
+  local LaTeX="pdflatex"
+#+end_src
+
+Norman's Makefile had a ~doc~ target; evidently it took three renderings to
+fully process cross-references and labels.
+
+#+begin_src makefile
+  doc:	$(OUTPUT)$(P)doc.tex $(OUTPUT)$(P)allcode.tex
+  	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
+  	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
+  	pdflatex -output-directory=$(OUTPUT) doc.tex
+#+end_src
+
+* Noweb build-time configuration
+
+Convert all of the following configuration items into well-written Premake
+configuration code.
+
+#+begin_src makefile
+  # How should Noweb run external pipelines?
+  #   fork    Unix fork and Unix pipelines
+  #   spawn   Run programs sequentially using spawn and temporary files
+  PIPE=spawn
+#+end_src
+
+For the next while the first set of macros are for a unix environment and
+the set of commented out macros are for a windows environment.
+
+** Installation Instructions (site build configuration)
+
+- bindir :: binary file directory; BINDIR is where the no command lands.
+- texinputs :: TeX input files; TEXINPUTS is where to place the La/TeX styles/macros following the TDS.
+- lib3 :: Noweb 3 library; LIB3 is where Noweb 3 scripts and configuration files go.
+
+** Lua kludges
+I don't understand the kludge.
+
+#+begin_src makefile
+  # Lua kludges --- here because we know we are moving to Lua 5.
+  LuaMakefile=
+  #LuaMakefile=-f Makefile.win
+#+end_src
+
+** Furhter system (site) information
+
+- shell :: =/bin/sh=, the command shell; POSIX sh or BASH?
+- CINAME ::
+- CIMSG ::
+- NUL :: the null device, where shit goes to die.
+- make :: =make=, the name of and arguments to the Make binary.
+
+** Compilation information
+
+- C compiler
+- C compiler flags
+- Extra C compiler flags
+- Output object file type
+
+#+begin_src makefile
+  CC=gcc
+  CFLAGS=-ansi -pedantic -std=c11 -c -o
+  XCFLAGS=-DPLATFORM='"$(PLATFORM)"' -Dnw_$(PLATFORM) -DNWDEFAULTDIR='"$(LIB3)"'
+  O=.o
+  #CC=cl
+  #CFLAGS=/nologo -MTd /c /Fo:
+  #XCFLAGS=-DPLATFORM="\"$(PLATFORM)\"" -Dnw_$(PLATFORM) -DWIN32="1" -DNWDEFAULTDIR="\"c:\\users\\Public\\documents\\noweb3\\bin\""
+  #O=.obj
+#+end_src
+
+*** Linking information
+#+begin_src makefile
+  # link
+  LD=gcc
+  LFLAGS=-o
+  LIBPROLOG=
+  LIBEPILOG=-lm
+  E=
+  #LD=cl
+  #LFLAGS=/nologo /Fe:
+  #LIBPROLOG=/link
+  #LIBEPILOG=
+  #E=.exe
+#+end_src
+
+
+** AR, whatever that is
+#+begin_src makefile
+  # AR
+  # There is a space after the rv in the following line.
+  # This is both deliberate and required.
+  AR=ar rv 
+  A=.a
+  #AR=lib -nologo -out:
+  #A=.lib
+#+end_src
+
+** General system commands
+#+begin_src makefile
+  # general commands
+  RMDIR=rm -f -r
+  RM=rm -f
+  CP=cp
+  CPR=cp -r
+  #RMDIR=rmdir /s /q
+  #RM=del /q
+  #CP=copy
+  #CPR=xcopy /s
+#+end_src
+
+** Noweb's /nocond/
+#+begin_src makefile
+  # nocond
+  NOCOND=$(LIB3)/tools/nocond
+  #NOCOND=$(LIB3)\tools\nocond
+#+end_src
+
+** Libraries
+- ranlib
+- cii
+
+#+begin_src makefile
+  ################################################################
+  #  Other configuration information
+
+  # if your system doesn't have ranlib, change "ranlib" to "true"
+  RANLIB=ranlib
+  #RANLIB=echo
+
+  # set the alignment (in bytes) of pointers returned by malloc
+  # see cii/install.html for more
+  #CIIMAXALIGN=8		# Sparc, Alpha
+  CIIMAXALIGN=4		# Linux x86, Windows
+
+  # Most Windows environments will want to comment everything following this.
+
+  # in SunOs 4.1.x, uncomment the following line to avoid prototypes warnings
+  # for standard functions
+  #XINCLUDES=-I/usr/5include
+
+  # if you don't have popen() in your C library, comment the following line:
+  POPEN=-DPOPEN
+
+  # if your C library is not POSIX compliant, comment the following line:
+  POSIX=-DPOSIX
+
+  # if you don't have strerror() in your C library, uncomment the following line:
+  #NOSTRERROR= -DNOSTRERROR
+#+end_src
+
+** Historical configuration unnecessary when using Premake
+*** Paths
+#+begin_src makefile
+  # What file and PATH conventions should Noweb use (unix or win)?
+  PLATFORM=unix
+  P=/
+  #PLATFORM=win
+  #P=^\
+#+end_src
+
 * Normal Ramsey's old TODO, or "Things to be done for noweb 3"
 :PROPERTIES:
 :CUSTOM_ID: things-to-be-done-for-noweb-3
