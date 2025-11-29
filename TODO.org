@@ -1,6 +1,6 @@
 #+TITLE: Rammel
-* Premake
-I think this is an interesting project, and because it's also written in Lua and
+* TODO Write a Premake script to build Rammel
+I think Premake is an interesting project, and because it's also written in Lua and
 provides some nicety for generating UNIX or Windows builds, I'll convert the
 old-school Make file to Premake rules. Really, the main reason I wanted to use
 Premake was to use Lua to achieve an interactive configuration that makes things
@@ -751,7 +751,8 @@ The tasks are in rough order of priority.
 | noidx  | nrnrnr | DONE   | Convert noidx from Icon to Lua.                                                                                                                             |
 
 * limake
-This is someone's make-wrapping shell script.
+This is /someone's/ make-wrapping shell script, or perhaps it was named "li•make" for "Linux"?
+
 #+begin_src shell
   #!/bin/sh
   if [ $# -eq 0 ]; then set all install; fi  # "$@" breaks make for empty args
