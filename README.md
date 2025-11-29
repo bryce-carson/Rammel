@@ -49,6 +49,11 @@ Rammel uses:
 - *C Interfaces and Implementations*;
 - *Premake5*.
 
+A TODO file is maintained in Org syntax, so using Emacs to interact with Rammel,
+in general, is preferred. The doc directory contains documents that existed
+within the Noweb 3 sources, from which Rammel is directly inherited from (using
+Git); this may disappear in the future.
+
 <!-- Local Variables: -->
 <!-- mode: markdown -->
 <!-- End: -->
