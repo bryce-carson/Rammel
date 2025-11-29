@@ -1,1 +1,66 @@
+* Icon programs
+- buildswitch.nw :: An icon implementation of "buildswitch".
+
+* Individual Documents
+- doc.nw :: 
 - overview.nw :: A document giving an overview of work completed to enhance Noweb 2 leading to the third major version of Noweb.
+
+* C noweb webs
+- cargs.nw ::
+- columns.nw ::
+- cpif.nw ::
+
+
+** Chapters in a larger document
+- env-lua.nw :: Lua registration of the C functions =getenv= and =putenv=.
+- errors.nw ::
+- fakepretty.nw ::
+- finduses.nw ::
+- fromascii ::
+- fu-run :: the =main= program for /finduses/.
+- getline ::
+- ipipe ::
+- ipipe-lua ::
+- lua-help ::
+- lua-main ::
+- main ::
+- markparse ::
+- markup ::
+- markup-run ::
+- match ::
+- misc-lua ::
+- mnt ::
+- modtrees ::
+- modules ::
+- mpipe ::
+- mpipe-lua ::
+- mpipe-new ::
+- notangle ::
+- noweb-lua ::
+- nt-run ::
+- nullsink ::
+- nwbuffer ::
+- nwbuffer-lua ::
+- nwmtime ::
+- nwprocess ::
+- nwtime ::
+- precompiled ::
+- pretty ::
+- recognize ::
+- stages ::
+- strsave ::
+- sys ::
+- toascii ::
+- util ::
+- xpipe ::
+- xpipe-lua :: 
+
+There's also a version of xpipe in the bugs/ subdirectory.
+
+* Odd LaTeX files
+- luatab.nw :: Contains only a documentation chunk, and uses the ~[[...]]~ syntax.
+
+* Confusing files
+nocond
+
+* /spawn/, vendored software converted to Noweb
