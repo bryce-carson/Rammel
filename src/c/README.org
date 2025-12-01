@@ -277,7 +277,7 @@ DIST is a new list of C sources (.c and .h files) that must be distributed along
 - errors
 - getline
 - nwmtime
-
+  
 ** Additional rules
 
 A pseudocode implementation of the additional rules as Lua code is given below.
@@ -359,8 +359,8 @@ A pseudocode implementation of the additional rules as Lua code is given below.
     if not file then print(msg) end
     string.format([[notangle %s.nw %s -L"#line %%L "\"%s.nw"\"%%N" %S CPIF %s]], name, tangleopts, name, header, name)
   end
-  for i in pairs(files["h"]) do compile_tangled_c_file(i, "-Rheader") end
-  for i in pairs(files["c"]) do compile_tangled_c_file(i, nil) end
+  for header in pairs(files["h"]) do compile_tangled_c_file(header, "-Rheader") end
+  for source in pairs(files["c"]) do compile_tangled_c_file(source) end
 
   -- Every key in objects is an object, and each inner table is a list of files
   -- needed for linking that object.
