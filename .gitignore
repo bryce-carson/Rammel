@@ -4,3 +4,5 @@
 c/no
 c/nwmtime
 lib*.a
+/src/tools/build/
+/vendor/build/
