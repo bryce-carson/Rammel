@@ -759,577 +759,436 @@ This is /someone's/ make-wrapping shell script, or perhaps it was named "li•ma
   /usr/bin/make CC="gcc -ansi -pedantic" XCFLAGS=-DTEMPNAM BINDIR=/usr/local/bin LIB3=/usr/local/lib/noweb3 MAN=/usr/local/man TEXINPUTS=/usr/share/texmf/tex/latex/local ELISP=$HOME/emacs "$@"
 #+end_src
 
-* Differences between Norman's lua-2.5+nw and Lua 2.5.1
+* =diff= of Norman's lua-2.5+nw and Lua 2.5.1
 The git log of Noweb 3 indicates that Norman lost track of the updates he made
 to Noweb 3 at one point and simply committed everything he had ("who knows what
-changes!"). A very normal occurance in software development. When I first read
+changes!"): a very normal occurance in software development. When I first read
 that commit message I thought Norman was referring to the changes made to Lua
 2.5, in total, so I created a diff. The commit message isn't about just those
 changes, however; regardless, the diff lives here and is useful to have because
-it can be applied as a path to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
+it can be applied as a patch to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
 
 #+begin_src diff
-  ,*** /tmp/lua/inout.c	2025-11-18 17:54:06.123407721 -0700
-  --- /tmp/noweb3/lua-2.5+nw/src/inout.c	2025-11-18 17:54:35.281295458 -0700
-  ,***************
-  ,*** 5,11 ****
-    ,** Also provides some predefined lua functions.
-    ,*/
-    
-  ! char *rcs_inout="$Id: inout.c,v 2.42 1996/09/24 21:46:44 roberto Exp roberto $";
-    
-    #include <stdio.h>
-    #include <string.h>
-  --- 5,11 ----
-    ,** Also provides some predefined lua functions.
-    ,*/
-    
-  ! char *rcs_inout="$Id$";
-    
-    #include <stdio.h>
-    #include <string.h>
-  ,***************
-  ,*** 58,63 ****
-  --- 58,66 ----
+  --- /tmp/lua/inout.c	2025-11-18 17:54:06.123407721 -0700
+  +++ /tmp/noweb3/lua-2.5+nw/src/inout.c	2025-11-18 17:54:35.281295458 -0700
+  @@ -5,7 +5,7 @@
+   ,** Also provides some predefined lua functions.
+   ,*/
+   
+  -char *rcs_inout="$Id: inout.c,v 2.42 1996/09/24 21:46:44 roberto Exp roberto $";
+  +char *rcs_inout="$Id$";
+   
+   #include <stdio.h>
+   #include <string.h>
+  @@ -58,6 +58,9 @@
+    }
+    else
+      fp = fopen (fn, "r");
+  + if(0)
+  +   fprintf(stderr, "no: lua_openfile(%s); fp == %p%s\n", fn == NULL ? "NULL" : fn,
+  +           (void *)fp, fp == stdin ? " [stdin]" : "");
+    if (fp == NULL)
+      return NULL;
+    lua_parsedfile = luaI_createfixedstring(fn)->str;
+  @@ -69,6 +72,9 @@
+   ,*/
+   void lua_closefile (void)
+   {
+  +  if(0)
+  +    fprintf(stderr, "no: lua_closefile(%p) [%sstdin]\n", (void*)fp,
+  +            fp == stdin ? "" : "not ");
+    if (fp != NULL && fp != stdin)
+    {
+     fclose (fp);
+  @@ -168,7 +174,7 @@
+         sprintf(buff, "nil");
+         break;
+       default:
+  -      sprintf(buff, "userdata: %p", lua_getuserdata(obj));
+  +      sprintf(buff, "userdata: %p, tag = %d", lua_getuserdata(obj), lua_type(obj));
+         break;
+     }
+     return buff;
+
+  --- /tmp/lua/lex.c	2025-11-18 17:54:06.123407721 -0700
+  +++ /tmp/noweb3/lua-2.5+nw/src/lex.c	2025-11-18 17:54:35.281295458 -0700
+  @@ -1,4 +1,4 @@
+  -char *rcs_lex = "$Id: lex.c,v 2.38 1996/11/08 12:49:35 roberto Exp roberto $";
+  +char *rcs_lex = "$Id$";
+   
+   
+   #include <ctype.h>
+  @@ -48,15 +48,18 @@
+       int token;
+     } reserved [] = {
+         {"and", AND},
+  +      {"case", CASE},
+         {"do", DO},
+         {"else", ELSE},
+         {"elseif", ELSEIF},
+         {"end", END},
+         {"function", FUNCTION},
+  +      {"globmatch", GLOBMATCH},
+         {"if", IF},
+         {"local", LOCAL},
+         {"nil", NIL},
+         {"not", NOT},
+  +      {"of", OF},
+         {"or", OR},
+         {"repeat", REPEAT},
+         {"return", RETURN},
+  @@ -82,10 +85,12 @@
+   {
+     ++lua_linenumber;
+     if (pragma_allowed && current == '$') {  /* is a pragma? */
+  -    char *buff = luaI_buffer(MINBUFF+1);
+  -    int i = 0;
+  +    char buff[MINBUFF+1];
+  +    int i;
+  +  pragma_start:
+  +    i = 0;
+       next();  /* skip $ */
+  -    while (isalnum(current)) {
+  +    while (isalpha(current) || isdigit(current)) { /* isalnum broken in gcc */
+         if (i >= MINBUFF) luaI_syntaxerror("pragma too long");
+         buff[i++] = current;
+         next();
+  @@ -95,7 +100,40 @@
+         lua_debug = 1;
+       else if (strcmp(buff, "nodebug") == 0)
+         lua_debug = 0;
+  +    else if (strcmp(buff, "line") == 0 && isspace(current)) { 
+  +      for (; i >= 0; i--) buff[i] = 0;  /* not sure why, but prevents weird error */
+  +      next(); /* skip space */
+  +      while (isspace(current) && current != '\n') next();
+  +      if (isdigit(current)) {
+  +        lua_linenumber = 0;
+  +        while (isdigit(current)) {
+  +          lua_linenumber = 10 * lua_linenumber + (current - '0');
+  +	  next();
+  +	}
+  +	if (current == '\n')
+  +	  next();
+  +	else
+  +	  luaI_syntaxerror("invalid $line pragma");
+  +      } else
+  +	luaI_syntaxerror("invalid $line pragma");
+  +    }  
+  +    else if (strcmp(buff, "file") == 0 && isspace(current)) { 
+  +      for (; i >= 0; i--) buff[i] = 0;  /* not sure why, but prevents weird error */
+  +      i = 0;
+  +      next();  /* skip space */
+  +      while (current != '\n') {
+  +	if (i >= MINBUFF) luaI_syntaxerror("pragma too long");
+  +	buff[i++] = current;
+  +	next();
+  +      }
+  +      buff[i] = 0;
+  +      next(); /* skip trailing newline */
+  +      ++lua_linenumber;
+  +      lua_parsedfile = luaI_createfixedstring(buff)->str;
+  +      for (; i >= 0; i--) buff[i] = 0;  /* not sure why, but prevents weird error */
+  +    }  
+       else luaI_syntaxerror("invalid pragma");
+  +    if (current == '$') goto pragma_start;
+     }
+     return lua_linenumber;
+   }
+  @@ -187,8 +225,9 @@
+   
+         case '=':
+           save_and_next();
+  -        if (current != '=') return '=';
+  -        else { save_and_next(); return EQ; }
+  +        if (current == '>') { save_and_next(); return ARROW; }
+  +        else if (current == '=') { save_and_next(); return EQ; }
+  +        else return '=';
+   
+         case '<':
+           save_and_next();
+  @@ -258,7 +297,9 @@
+         case '_':
+         {
+           TaggedString *ts;
+  -        do { save_and_next(); } while (isalnum(current) || current == '_');
+  +        do { save_and_next(); } 
+  +        while (isalpha(current) || isdigit(current) || current == '_');
+  +                        /* isalnum broken in gcc */
+           save(0);
+           ts = lua_createstring(yytext);
+           if (ts->marked > 2)
+  @@ -339,3 +380,12 @@
+     }
+   }
+   
+  +
+  +static int luaY_lexz (void)
+  +{
+  +  char *yytext = luaI_buffer(1);
+  +  int token = luaY_lex();
+  +  fprintf(stderr, "no: read token %d (%s)\n", token, yytext);
+  +  return token;
+  +}
+  +
+
+  --- /tmp/lua/lua.stx	2025-11-18 17:54:06.124407713 -0700
+  +++ /tmp/noweb3/lua-2.5+nw/src/lua.stx	2025-11-18 17:54:35.281295458 -0700
+  @@ -1,6 +1,6 @@
+   %{
+   
+  -char *rcs_luastx = "$Id: lua.stx,v 3.40 1996/09/25 21:52:00 roberto Exp roberto $";
+  +char *rcs_luastx = "$Id$";
+   
+   #include <stdio.h>
+   #include <stdlib.h>
+  @@ -19,6 +19,8 @@
+   
+   /* to avoid warnings generated by yacc */
+   int yyparse (void);
+  +#undef malloc
+  +#undef realloc
+   #define malloc luaI_malloc
+   #define realloc luaI_realloc
+   #define free luaI_free
+  @@ -64,8 +66,23 @@
+   
+   static void check_space (int i)
+   {
+  -  if (pc+i>maxcurr-1)  /* 1 byte free to code HALT of main code */
+  +  if (pc+i>maxcurr-1) {  /* 1 byte free to code HALT of main code */
+  +	int adjust = (basepc == *initcode);
+       maxcurr = growvector(&basepc, maxcurr, Byte, codeEM, MAX_INT);
+  +	if (adjust) {
+  +#if 0
+  +      char *token = luaI_buffer(1);
+  +      if (token[0] == 0)
+  +        token = "<eof>";
+  +	  fprintf(stderr,
+  +         "no: Adjusted code vector\n> last token read: \"%s\" at line %d in file %s\n",
+  +              token, lua_linenumber, lua_parsedfile);
+  +      fprintf(stderr, "   old vector = %p; new vector = %p\n",
+  +              (void *) *initcode, (void *)basepc);
+  +#endif
+  +	  *initcode = basepc; /* bugfix: don't let *initcode get stale */
+  +    }
+  +  }
+   }
+   
+   static void code_byte (Byte c)
+  @@ -386,6 +403,10 @@
+     code_word_at(basepc+thenAdd+1,elseinit-(thenAdd+sizeof(Word)+1));
+   }
+   
+  +static void codeIfEqJmp(Long label_address, Long target) {
+  +  /*assert(target >= label_address + 2);*/
+  +  code_word_at(basepc+label_address,target-(label_address+2));
+  +}
+   
+   /*
+   ,** Parse LUA code.
+  @@ -426,16 +447,18 @@
+   
+   %token WRONGTOKEN
+   %token NIL
+  -%token IF THEN ELSE ELSEIF WHILE DO REPEAT UNTIL END
+  +%token IF THEN ELSE ELSEIF WHILE DO REPEAT UNTIL CASE GLOBMATCH OF END
+   %token RETURN
+   %token LOCAL
+   %token FUNCTION
+   %token DOTS
+  +%token ARROW
+   %token <vFloat> NUMBER
+   %token <vWord>  STRING
+   %token <pTStr>  NAME 
+   
+  -%type <vLong> PrepJump
+  +%type <vLong> PrepJump, PrepIfEqJump, PrepIfGlobJump
+  +%type <vLong> tagged_arm_and_body, glob_arm_and_body /* label just before ARROW */
+   %type <vLong> exprlist, exprlist1  /* if > 0, points to function return
+   	counter (which has list length); if <= 0, -list lenght */
+   %type <vLong> functioncall, expr  /* if != 0, points to function return
+  @@ -515,6 +538,10 @@
+   stat   : IF expr1 THEN PrepJump block PrepJump elsepart END
+   	{ codeIf($4, $6); }
+   
+  +       | CASE expr1 OF case_body END
+  +
+  +       | GLOBMATCH expr1 OF glob_body END
+  +
+          | WHILE {$<vLong>$=pc;} expr1 DO PrepJump block PrepJump END
+          {
+           basepc[$5] = IFFJMP;
+  @@ -553,6 +580,42 @@
+   	{ codeIf($4, $6); }
+            ;
+        
+  + /* keeps a copy of expr1 (from CASE expr1 of) on stack until arm is chosen */
+  + /* we have to insert DUP *before* tagged_arm_and_body to avoid parser confusion */
+  +case_body : '|' {code_byte(DUP);} tagged_arm_and_body
+  +          | ELSE ARROW {code_byte(POP);} block 
+  +          | /* empty */ {code_byte(POP); /* should code for fallback here */ }
+  +          ;
+  +
+  +tagged_arm_and_body
+  +       : expr1 PrepIfEqJump ',' /* if it equals tag, will jump to backpatched label */
+  +         {code_byte(DUP);} tagged_arm_and_body
+  +   	 {codeIfEqJmp($2,$5); $$=$5;}  /* backpatch and return the label */
+  +       | expr1 {code_byte(EQOP);} PrepJump ARROW /* if equal, jump to block */
+  +         {code_byte(POP);} /* we found an arm; pop expr1 (from CASE expr1 OF) */
+  +         block PrepJump    /* execute block, then jump to end of case stmt */
+  +         case_body 
+  +         {codeIf($3,$7);$$=$3+3;} /* patch jumps; return label for other patch */
+  +       ;                      
+  +
+  + /* keeps a copy of expr1 (from CASE expr1 of) on stack until arm is chosen */
+  + /* we have to insert DUP *before* tagged_arm_and_body to avoid parser confusion */
+  +glob_body : '|' {code_byte(DUP);} glob_arm_and_body
+  +          | ELSE ARROW {code_byte(POP);} block 
+  +          | /* empty */ {code_byte(POP); /* should code for fallback here */ }
+  +          ;
+  +
+  +glob_arm_and_body
+  +       : expr1 PrepIfGlobJump ',' /* if matches tag, will jump to backpatched label */
+  +         {code_byte(DUP);} glob_arm_and_body
+  +   	 {codeIfEqJmp($2,$5); $$=$5;}  /* backpatch and return the label */
+  +       | expr1 {code_byte(GLOBMATCHOP);} PrepJump ARROW /* if match, jump to block */
+  +         {code_byte(POP);} /* we found an arm; pop expr1 (from CASE expr1 OF) */
+  +         block PrepJump    /* execute block, then jump to end of case stmt */
+  +         glob_body 
+  +         {codeIf($3,$7);$$=$3+3;} /* patch jumps; return label for other patch */
+  +       ;                      
+  +
+   block    : {$<vInt>$ = nlocalvar;} statlist ret 
+            {
+   	  if (nlocalvar != $<vInt>1)
+  @@ -583,6 +646,18 @@
+            }
+   	 ;
+   	   
+  +PrepIfEqJump : /* empty --- returns address to patch label */ 
+  +             { code_byte(EQOP); code_byte(NOTOP); code_byte(IFFJMP); 
+  +               $$ = pc; code_word(0);
+  +             }
+  +             ;
+  +
+  +PrepIfGlobJump : /* empty --- returns address to patch label */ 
+  +             { code_byte(GLOBMATCHOP); code_byte(NOTOP); code_byte(IFFJMP); 
+  +               $$ = pc; code_word(0);
+  +             }
+  +             ;
+  +
+   expr1	 : expr { adjust_functioncall($1, 1); }
+   	 ;
+   				
+
+  --- /tmp/lua/opcode.c	2025-11-18 17:54:06.125407704 -0700
+  +++ /tmp/noweb3/lua-2.5+nw/src/opcode.c	2025-11-18 17:54:35.281704716 -0700
+  @@ -3,7 +3,7 @@
+   ,** TecCGraf - PUC-Rio
+   ,*/
+   
+  -char *rcs_opcode="$Id: opcode.c,v 3.76 1996/09/24 21:46:44 roberto Exp roberto $";
+  +char *rcs_opcode="$Id$";
+   
+   #include <setjmp.h>
+   #include <stdio.h>
+  @@ -497,6 +497,7 @@
+     if (setjmp(myErrorJmp) == 0)
+     {
+       lua_parse(&tf);
+  +    tf.fileName = lua_parsedfile;  /* if from preprocessor, get correct name */
+       status = luaI_dorun(&tf);
      }
      else
-       fp = fopen (fn, "r");
-  +  if(0)
-  +    fprintf(stderr, "no: lua_openfile(%s); fp == %p%s\n", fn == NULL ? "NULL" : fn,
-  +            (void *)fp, fp == stdin ? " [stdin]" : "");
-     if (fp == NULL)
-       return NULL;
-     lua_parsedfile = luaI_createfixedstring(fn)->str;
-  ,***************
-  ,*** 69,74 ****
-  --- 72,80 ----
-    ,*/
-    void lua_closefile (void)
-    {
-  +   if(0)
-  +     fprintf(stderr, "no: lua_closefile(%p) [%sstdin]\n", (void*)fp,
-  +             fp == stdin ? "" : "not ");
-     if (fp != NULL && fp != stdin)
-     {
-      fclose (fp);
-  ,***************
-  ,*** 168,174 ****
-          sprintf(buff, "nil");
-          break;
-        default:
-  !       sprintf(buff, "userdata: %p", lua_getuserdata(obj));
-          break;
+  @@ -950,6 +951,9 @@
+        incr_top;
+        break;
+   
+  +   case DUP:
+  +     *top = *(top-1); incr_top; break;
+  +
+      case PUSHBYTE: 
+        tag(top) = LUA_T_NUMBER; nvalue(top) = *pc++; incr_top; break;
+   
+  @@ -1132,7 +1136,23 @@
       }
-      return buff;
-  --- 174,180 ----
-          sprintf(buff, "nil");
-          break;
-        default:
-  !       sprintf(buff, "userdata: %p, tag = %d", lua_getuserdata(obj), lua_type(obj));
-          break;
-      }
-      return buff;
-
-  ,*** /tmp/lua/lex.c	2025-11-18 17:54:06.123407721 -0700
-  --- /tmp/noweb3/lua-2.5+nw/src/lex.c	2025-11-18 17:54:35.281295458 -0700
-  ,***************
-  ,*** 1,4 ****
-  ! char *rcs_lex = "$Id: lex.c,v 2.38 1996/11/08 12:49:35 roberto Exp roberto $";
-    
-    
-    #include <ctype.h>
-  --- 1,4 ----
-  ! char *rcs_lex = "$Id$";
-    
-    
-    #include <ctype.h>
-  ,***************
-  ,*** 48,62 ****
-  --- 48,65 ----
-        int token;
-      } reserved [] = {
-          {"and", AND},
-  +       {"case", CASE},
-          {"do", DO},
-          {"else", ELSE},
-          {"elseif", ELSEIF},
-          {"end", END},
-          {"function", FUNCTION},
-  +       {"globmatch", GLOBMATCH},
-          {"if", IF},
-          {"local", LOCAL},
-          {"nil", NIL},
-          {"not", NOT},
-  +       {"of", OF},
-          {"or", OR},
-          {"repeat", REPEAT},
-          {"return", RETURN},
-  ,***************
-  ,*** 82,91 ****
-    {
-      ++lua_linenumber;
-      if (pragma_allowed && current == '$') {  /* is a pragma? */
-  !     char *buff = luaI_buffer(MINBUFF+1);
-  !     int i = 0;
-        next();  /* skip $ */
-  !     while (isalnum(current)) {
-          if (i >= MINBUFF) luaI_syntaxerror("pragma too long");
-          buff[i++] = current;
-          next();
-  --- 85,96 ----
-    {
-      ++lua_linenumber;
-      if (pragma_allowed && current == '$') {  /* is a pragma? */
-  !     char buff[MINBUFF+1];
-  !     int i;
-  !   pragma_start:
-  !     i = 0;
-        next();  /* skip $ */
-  !     while (isalpha(current) || isdigit(current)) { /* isalnum broken in gcc */
-          if (i >= MINBUFF) luaI_syntaxerror("pragma too long");
-          buff[i++] = current;
-          next();
-  ,***************
-  ,*** 95,101 ****
-  --- 100,139 ----
-          lua_debug = 1;
-        else if (strcmp(buff, "nodebug") == 0)
-          lua_debug = 0;
-  +     else if (strcmp(buff, "line") == 0 && isspace(current)) { 
-  +       for (; i >= 0; i--) buff[i] = 0;  /* not sure why, but prevents weird error */
-  +       next(); /* skip space */
-  +       while (isspace(current) && current != '\n') next();
-  +       if (isdigit(current)) {
-  +         lua_linenumber = 0;
-  +         while (isdigit(current)) {
-  +           lua_linenumber = 10 * lua_linenumber + (current - '0');
-  + 	  next();
-  + 	}
-  + 	if (current == '\n')
-  + 	  next();
-  + 	else
-  + 	  luaI_syntaxerror("invalid $line pragma");
-  +       } else
-  + 	luaI_syntaxerror("invalid $line pragma");
-  +     }  
-  +     else if (strcmp(buff, "file") == 0 && isspace(current)) { 
-  +       for (; i >= 0; i--) buff[i] = 0;  /* not sure why, but prevents weird error */
-  +       i = 0;
-  +       next();  /* skip space */
-  +       while (current != '\n') {
-  + 	if (i >= MINBUFF) luaI_syntaxerror("pragma too long");
-  + 	buff[i++] = current;
-  + 	next();
-  +       }
-  +       buff[i] = 0;
-  +       next(); /* skip trailing newline */
-  +       ++lua_linenumber;
-  +       lua_parsedfile = luaI_createfixedstring(buff)->str;
-  +       for (; i >= 0; i--) buff[i] = 0;  /* not sure why, but prevents weird error */
-  +     }  
-        else luaI_syntaxerror("invalid pragma");
-  +     if (current == '$') goto pragma_start;
-      }
-      return lua_linenumber;
-    }
-  ,***************
-  ,*** 187,194 ****
-    
-          case '=':
-            save_and_next();
-  !         if (current != '=') return '=';
-  !         else { save_and_next(); return EQ; }
-    
-          case '<':
-            save_and_next();
-  --- 225,233 ----
-    
-          case '=':
-            save_and_next();
-  !         if (current == '>') { save_and_next(); return ARROW; }
-  !         else if (current == '=') { save_and_next(); return EQ; }
-  !         else return '=';
-    
-          case '<':
-            save_and_next();
-  ,***************
-  ,*** 258,264 ****
-          case '_':
-          {
-            TaggedString *ts;
-  !         do { save_and_next(); } while (isalnum(current) || current == '_');
-            save(0);
-            ts = lua_createstring(yytext);
-            if (ts->marked > 2)
-  --- 297,305 ----
-          case '_':
-          {
-            TaggedString *ts;
-  !         do { save_and_next(); } 
-  !         while (isalpha(current) || isdigit(current) || current == '_');
-  !                         /* isalnum broken in gcc */
-            save(0);
-            ts = lua_createstring(yytext);
-            if (ts->marked > 2)
-  ,***************
-  ,*** 339,341 ****
-  --- 380,391 ----
-      }
-    }
-    
-  + 
-  + static int luaY_lexz (void)
-  + {
-  +   char *yytext = luaI_buffer(1);
-  +   int token = luaY_lex();
-  +   fprintf(stderr, "no: read token %d (%s)\n", token, yytext);
-  +   return token;
-  + }
-  + 
-
-  ,*** /tmp/lua/lua.stx	2025-11-18 17:54:06.124407713 -0700
-  --- /tmp/noweb3/lua-2.5+nw/src/lua.stx	2025-11-18 17:54:35.281295458 -0700
-  ,***************
-  ,*** 1,6 ****
-    %{
-    
-  ! char *rcs_luastx = "$Id: lua.stx,v 3.40 1996/09/25 21:52:00 roberto Exp roberto $";
-    
-    #include <stdio.h>
-    #include <stdlib.h>
-  --- 1,6 ----
-    %{
-    
-  ! char *rcs_luastx = "$Id$";
-    
-    #include <stdio.h>
-    #include <stdlib.h>
-  ,***************
-  ,*** 19,24 ****
-  --- 19,26 ----
-    
-    /* to avoid warnings generated by yacc */
-    int yyparse (void);
-  + #undef malloc
-  + #undef realloc
-    #define malloc luaI_malloc
-    #define realloc luaI_realloc
-    #define free luaI_free
-  ,***************
-  ,*** 64,71 ****
-    
-    static void check_space (int i)
-    {
-  !   if (pc+i>maxcurr-1)  /* 1 byte free to code HALT of main code */
-        maxcurr = growvector(&basepc, maxcurr, Byte, codeEM, MAX_INT);
-    }
-    
-    static void code_byte (Byte c)
-  --- 66,88 ----
-    
-    static void check_space (int i)
-    {
-  !   if (pc+i>maxcurr-1) {  /* 1 byte free to code HALT of main code */
-  ! 	int adjust = (basepc == *initcode);
-        maxcurr = growvector(&basepc, maxcurr, Byte, codeEM, MAX_INT);
-  + 	if (adjust) {
-  + #if 0
-  +       char *token = luaI_buffer(1);
-  +       if (token[0] == 0)
-  +         token = "<eof>";
-  + 	  fprintf(stderr,
-  +          "no: Adjusted code vector\n> last token read: \"%s\" at line %d in file %s\n",
-  +               token, lua_linenumber, lua_parsedfile);
-  +       fprintf(stderr, "   old vector = %p; new vector = %p\n",
-  +               (void *) *initcode, (void *)basepc);
-  + #endif
-  + 	  *initcode = basepc; /* bugfix: don't let *initcode get stale */
-  +     }
+      break;
+   
+  -    case LTOP:
+  +   case GLOBMATCHOP:
+  +   {
+  +    Object *l = top-2;
+  +    Object *r = top-1;
+  +    extern int globmatch(char *string, char *pattern);
+  +    int res;
+  +    if (tostring(l) || tostring(r))
+  +      res = 0;
+  +    else 
+  +      res = globmatch(svalue(l), svalue(r));
+  +    --top;
+  +    tag(top-1) = res ? LUA_T_NUMBER : LUA_T_NIL;
+  +    nvalue(top-1) = 1;
   +   }
-    }
-    
-    static void code_byte (Byte c)
-  ,***************
-  ,*** 386,391 ****
-  --- 403,412 ----
-      code_word_at(basepc+thenAdd+1,elseinit-(thenAdd+sizeof(Word)+1));
-    }
-    
-  + static void codeIfEqJmp(Long label_address, Long target) {
-  +   /*assert(target >= label_address + 2);*/
-  +   code_word_at(basepc+label_address,target-(label_address+2));
-  + }
-    
-    /*
-    ,** Parse LUA code.
-  ,***************
-  ,*** 426,441 ****
-    
-    %token WRONGTOKEN
-    %token NIL
-  ! %token IF THEN ELSE ELSEIF WHILE DO REPEAT UNTIL END
-    %token RETURN
-    %token LOCAL
-    %token FUNCTION
-    %token DOTS
-    %token <vFloat> NUMBER
-    %token <vWord>  STRING
-    %token <pTStr>  NAME 
-    
-  ! %type <vLong> PrepJump
-    %type <vLong> exprlist, exprlist1  /* if > 0, points to function return
-    	counter (which has list length); if <= 0, -list lenght */
-    %type <vLong> functioncall, expr  /* if != 0, points to function return
-  --- 447,464 ----
-    
-    %token WRONGTOKEN
-    %token NIL
-  ! %token IF THEN ELSE ELSEIF WHILE DO REPEAT UNTIL CASE GLOBMATCH OF END
-    %token RETURN
-    %token LOCAL
-    %token FUNCTION
-    %token DOTS
-  + %token ARROW
-    %token <vFloat> NUMBER
-    %token <vWord>  STRING
-    %token <pTStr>  NAME 
-    
-  ! %type <vLong> PrepJump, PrepIfEqJump, PrepIfGlobJump
-  ! %type <vLong> tagged_arm_and_body, glob_arm_and_body /* label just before ARROW */
-    %type <vLong> exprlist, exprlist1  /* if > 0, points to function return
-    	counter (which has list length); if <= 0, -list lenght */
-    %type <vLong> functioncall, expr  /* if != 0, points to function return
-  ,***************
-  ,*** 515,520 ****
-  --- 538,547 ----
-    stat   : IF expr1 THEN PrepJump block PrepJump elsepart END
-    	{ codeIf($4, $6); }
-    
-  +        | CASE expr1 OF case_body END
-  + 
-  +        | GLOBMATCH expr1 OF glob_body END
-  + 
-           | WHILE {$<vLong>$=pc;} expr1 DO PrepJump block PrepJump END
-           {
-            basepc[$5] = IFFJMP;
-  ,***************
-  ,*** 553,558 ****
-  --- 580,621 ----
-    	{ codeIf($4, $6); }
-             ;
-         
-  +  /* keeps a copy of expr1 (from CASE expr1 of) on stack until arm is chosen */
-  +  /* we have to insert DUP *before* tagged_arm_and_body to avoid parser confusion */
-  + case_body : '|' {code_byte(DUP);} tagged_arm_and_body
-  +           | ELSE ARROW {code_byte(POP);} block 
-  +           | /* empty */ {code_byte(POP); /* should code for fallback here */ }
-  +           ;
-  + 
-  + tagged_arm_and_body
-  +        : expr1 PrepIfEqJump ',' /* if it equals tag, will jump to backpatched label */
-  +          {code_byte(DUP);} tagged_arm_and_body
-  +    	 {codeIfEqJmp($2,$5); $$=$5;}  /* backpatch and return the label */
-  +        | expr1 {code_byte(EQOP);} PrepJump ARROW /* if equal, jump to block */
-  +          {code_byte(POP);} /* we found an arm; pop expr1 (from CASE expr1 OF) */
-  +          block PrepJump    /* execute block, then jump to end of case stmt */
-  +          case_body 
-  +          {codeIf($3,$7);$$=$3+3;} /* patch jumps; return label for other patch */
-  +        ;                      
-  + 
-  +  /* keeps a copy of expr1 (from CASE expr1 of) on stack until arm is chosen */
-  +  /* we have to insert DUP *before* tagged_arm_and_body to avoid parser confusion */
-  + glob_body : '|' {code_byte(DUP);} glob_arm_and_body
-  +           | ELSE ARROW {code_byte(POP);} block 
-  +           | /* empty */ {code_byte(POP); /* should code for fallback here */ }
-  +           ;
-  + 
-  + glob_arm_and_body
-  +        : expr1 PrepIfGlobJump ',' /* if matches tag, will jump to backpatched label */
-  +          {code_byte(DUP);} glob_arm_and_body
-  +    	 {codeIfEqJmp($2,$5); $$=$5;}  /* backpatch and return the label */
-  +        | expr1 {code_byte(GLOBMATCHOP);} PrepJump ARROW /* if match, jump to block */
-  +          {code_byte(POP);} /* we found an arm; pop expr1 (from CASE expr1 OF) */
-  +          block PrepJump    /* execute block, then jump to end of case stmt */
-  +          glob_body 
-  +          {codeIf($3,$7);$$=$3+3;} /* patch jumps; return label for other patch */
-  +        ;                      
-  + 
-    block    : {$<vInt>$ = nlocalvar;} statlist ret 
-             {
-    	  if (nlocalvar != $<vInt>1)
-  ,***************
-  ,*** 583,588 ****
-  --- 646,663 ----
-             }
-    	 ;
-    	   
-  + PrepIfEqJump : /* empty --- returns address to patch label */ 
-  +              { code_byte(EQOP); code_byte(NOTOP); code_byte(IFFJMP); 
-  +                $$ = pc; code_word(0);
-  +              }
-  +              ;
-  + 
-  + PrepIfGlobJump : /* empty --- returns address to patch label */ 
-  +              { code_byte(GLOBMATCHOP); code_byte(NOTOP); code_byte(IFFJMP); 
-  +                $$ = pc; code_word(0);
-  +              }
-  +              ;
-  + 
-    expr1	 : expr { adjust_functioncall($1, 1); }
-    	 ;
-    				
-
-  ,*** /tmp/lua/opcode.c	2025-11-18 17:54:06.125407704 -0700
-  --- /tmp/noweb3/lua-2.5+nw/src/opcode.c	2025-11-18 17:54:35.281704716 -0700
-  ,***************
-  ,*** 3,9 ****
-    ,** TecCGraf - PUC-Rio
-    ,*/
-    
-  ! char *rcs_opcode="$Id: opcode.c,v 3.76 1996/09/24 21:46:44 roberto Exp roberto $";
-    
-    #include <setjmp.h>
-    #include <stdio.h>
-  --- 3,9 ----
-    ,** TecCGraf - PUC-Rio
-    ,*/
-    
-  ! char *rcs_opcode="$Id$";
-    
-    #include <setjmp.h>
-    #include <stdio.h>
-  ,***************
-  ,*** 497,502 ****
-  --- 497,503 ----
-      if (setjmp(myErrorJmp) == 0)
-      {
-        lua_parse(&tf);
-  +     tf.fileName = lua_parsedfile;  /* if from preprocessor, get correct name */
-        status = luaI_dorun(&tf);
-      }
-      else
-  ,***************
-  ,*** 950,955 ****
-  --- 951,959 ----
-         incr_top;
+  +   break;
+  +
+  +   case LTOP:
+         comparison(LUA_T_NUMBER, LUA_T_NIL, LUA_T_NIL, "lt");
          break;
-    
-  +    case DUP:
-  +      *top = *(top-1); incr_top; break;
-  + 
-       case PUSHBYTE: 
-         tag(top) = LUA_T_NUMBER; nvalue(top) = *pc++; incr_top; break;
-    
-  ,***************
-  ,*** 1132,1138 ****
-       }
-       break;
-    
-  !     case LTOP:
-          comparison(LUA_T_NUMBER, LUA_T_NIL, LUA_T_NIL, "lt");
-          break;
-    
-  --- 1136,1158 ----
-       }
-       break;
-    
-  !    case GLOBMATCHOP:
-  !    {
-  !     Object *l = top-2;
-  !     Object *r = top-1;
-  !     extern int globmatch(char *string, char *pattern);
-  !     int res;
-  !     if (tostring(l) || tostring(r))
-  !       res = 0;
-  !     else 
-  !       res = globmatch(svalue(l), svalue(r));
-  !     --top;
-  !     tag(top-1) = res ? LUA_T_NUMBER : LUA_T_NIL;
-  !     nvalue(top-1) = 1;
-  !    }
-  !    break;
-  ! 
-  !    case LTOP:
-          comparison(LUA_T_NUMBER, LUA_T_NIL, LUA_T_NIL, "lt");
-          break;
-    
+   
 
-  ,*** /tmp/lua/opcode.h	2025-11-18 17:54:06.125407704 -0700
-  --- /tmp/noweb3/lua-2.5+nw/src/opcode.h	2025-11-18 17:54:35.281704716 -0700
-  ,***************
-  ,*** 1,6 ****
-    /*
-    ,** TeCGraf - PUC-Rio
-  ! ** $Id: opcode.h,v 3.23 1996/09/26 21:08:41 roberto Exp roberto $
-    ,*/
-    
-    #ifndef opcode_h
-  --- 1,6 ----
-    /*
-    ,** TeCGraf - PUC-Rio
-  ! ** $Id$
-    ,*/
-    
-    #ifndef opcode_h
-  ,***************
-  ,*** 23,28 ****
-  --- 23,29 ----
-    PUSH0,/*		-		0.0  */
-    PUSH1,/*		-		1.0  */
-    PUSH2,/*		-		2.0  */
-  + DUP,/*                  x               x x */
-    PUSHBYTE,/*	b	-		(float)b  */
-    PUSHWORD,/*	w	-		(float)w  */
-    PUSHFLOAT,/*	f	-		f  */
-  ,***************
-  ,*** 63,68 ****
-  --- 64,70 ----
-    ADJUST0,/*		-		-		TOP=BASE  */
-    ADJUST,/*	b	-		-		TOP=BASE+b  */
-    CREATEARRAY,/*	w	-		newarray(size = w)  */
-  + GLOBMATCHOP,/*		y x		globMatch(x,y)? 1 : nil  */
-    EQOP,/*			y x		(x==y)? 1 : nil  */
-    LTOP,/*			y x		(x<y)? 1 : nil  */
-    LEOP,/*			y x		(x<y)? 1 : nil  */
+  --- /tmp/lua/opcode.h	2025-11-18 17:54:06.125407704 -0700
+  +++ /tmp/noweb3/lua-2.5+nw/src/opcode.h	2025-11-18 17:54:35.281704716 -0700
+  @@ -1,6 +1,6 @@
+   /*
+   ,** TeCGraf - PUC-Rio
+  -** $Id: opcode.h,v 3.23 1996/09/26 21:08:41 roberto Exp roberto $
+  +** $Id$
+   ,*/
+   
+   #ifndef opcode_h
+  @@ -23,6 +23,7 @@
+   PUSH0,/*		-		0.0  */
+   PUSH1,/*		-		1.0  */
+   PUSH2,/*		-		2.0  */
+  +DUP,/*                  x               x x */
+   PUSHBYTE,/*	b	-		(float)b  */
+   PUSHWORD,/*	w	-		(float)w  */
+   PUSHFLOAT,/*	f	-		f  */
+  @@ -63,6 +64,7 @@
+   ADJUST0,/*		-		-		TOP=BASE  */
+   ADJUST,/*	b	-		-		TOP=BASE+b  */
+   CREATEARRAY,/*	w	-		newarray(size = w)  */
+  +GLOBMATCHOP,/*		y x		globMatch(x,y)? 1 : nil  */
+   EQOP,/*			y x		(x==y)? 1 : nil  */
+   LTOP,/*			y x		(x<y)? 1 : nil  */
+   LEOP,/*			y x		(x<y)? 1 : nil  */
 
-  ,*** /tmp/lua/undump.c	2025-11-18 17:54:06.125407704 -0700
-  --- /tmp/noweb3/lua-2.5+nw/src/undump.c	2025-11-18 17:54:35.281704716 -0700
-  ,***************
-  ,*** 3,9 ****
-    ,** load bytecodes from files
-    ,*/
-    
-  ! char* rcs_undump="$Id: undump.c,v 1.20 1996/11/16 20:14:23 lhf Exp lhf $";
-    
-    #include <stdio.h>
-    #include <string.h>
-  --- 3,9 ----
-    ,** load bytecodes from files
-    ,*/
-    
-  ! char* rcs_undump="$Id$";
-    
-    #include <stdio.h>
-    #include <string.h>
-  ,***************
-  ,*** 36,41 ****
-  --- 36,42 ----
-    	case PUSH0:
-    	case PUSH1:
-    	case PUSH2:
-  + 	case DUP:
-    	case PUSHLOCAL0:
-    	case PUSHLOCAL1:
-    	case PUSHLOCAL2:
-  ,***************
-  ,*** 59,64 ****
-  --- 60,66 ----
-    	case STORELOCAL9:
-    	case STOREINDEXED0:
-    	case ADJUST0:
-  + 	case GLOBMATCHOP:
-    	case EQOP:
-    	case LTOP:
-    	case LEOP:
+  --- /tmp/lua/undump.c	2025-11-18 17:54:06.125407704 -0700
+  +++ /tmp/noweb3/lua-2.5+nw/src/undump.c	2025-11-18 17:54:35.281704716 -0700
+  @@ -3,7 +3,7 @@
+   ,** load bytecodes from files
+   ,*/
+   
+  -char* rcs_undump="$Id: undump.c,v 1.20 1996/11/16 20:14:23 lhf Exp lhf $";
+  +char* rcs_undump="$Id$";
+   
+   #include <stdio.h>
+   #include <string.h>
+  @@ -36,6 +36,7 @@
+   	case PUSH0:
+   	case PUSH1:
+   	case PUSH2:
+  +	case DUP:
+   	case PUSHLOCAL0:
+   	case PUSHLOCAL1:
+   	case PUSHLOCAL2:
+  @@ -59,6 +60,7 @@
+   	case STORELOCAL9:
+   	case STOREINDEXED0:
+   	case ADJUST0:
+  +	case GLOBMATCHOP:
+   	case EQOP:
+   	case LTOP:
+   	case LEOP:
 
 #+end_src
