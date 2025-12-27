@@ -1,6 +1,4 @@
 #line 66 "markmain.nw"
-static char rcsid[] = "$Id: markmain.nw,v 2.26 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -365,7 +363,7 @@ print_state(out, End, state, count);
 #line 95 "markmain.nw"
 }
 #line 551 "markmain.nw"
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
     FILE *fp;
     int i;
 

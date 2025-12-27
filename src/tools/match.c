@@ -1,6 +1,4 @@
 #line 10 "match.nw"
-static char rcsid[] = "$Id: match.nw,v 1.18 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #include <string.h>
 #include "match.h"
 static int matches(char *line, char *search) {

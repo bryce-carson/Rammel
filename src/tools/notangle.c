@@ -1,6 +1,4 @@
 #line 18 "notangle.nw"
-static char rcsid[] = "$Id: notangle.nw,v 2.22 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #define MAX_MODNAME 255
 #line 23 "notangle.nw"
 #include <stdio.h>

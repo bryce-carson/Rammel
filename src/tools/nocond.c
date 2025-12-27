@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 typedef enum state {
   Start = 1,

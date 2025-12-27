@@ -1,6 +1,4 @@
 #line 18 "columns.nw"
-static char rcsid[] = "$Id: columns.nw,v 2.21 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #include <stdio.h>
 #include "columns.h"
 

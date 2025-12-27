@@ -1,6 +1,4 @@
 #line 17 "getline.nw"
-static char rcsid[] = "$Id: getline.nw,v 2.21 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #define START_SIZE 128                  /* initial buffer size */
 
 #include <stdio.h>
@@ -11,7 +9,7 @@ static char rcsname[] = "$Name: v2_11b $";
 #include "getline.h"
 
 static char *buf1 = NULL, *buf2 = NULL; /* lines without, with tabs expanded */
-static buf_size = START_SIZE;           /* size of both buffers if non-NULL */
+static int buf_size = START_SIZE;           /* size of both buffers if non-NULL */
 
 #line 42 "getline.nw"
 void new_buffers(void) {

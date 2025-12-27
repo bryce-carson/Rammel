@@ -1,6 +1,4 @@
 #line 24 "markup.nw"
-static char rcsid[] = "$Id: markup.nw,v 2.21 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,7 +26,7 @@ char *first_doc_line(char *line) {
 #line 89 "markup.nw"
 int is_def(char *line) {
     int answer;
-    static complained;
+    static int complained;
     
 #line 102 "markup.nw"
 { static int checked = 0;

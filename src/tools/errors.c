@@ -1,6 +1,4 @@
 #line 17 "errors.nw"
-static char rcsid[] = "$Id: errors.nw,v 2.23 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,6 +1,4 @@
 #line 7 "main.nw"
-static char rcsid[] = "$Id: main.nw,v 2.22 2006/06/12 21:03:53 nr Exp nr $";
-static char rcsname[] = "$Name: v2_11b $";
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,7 +10,7 @@ static char rcsname[] = "$Name: v2_11b $";
 #include "modtrees.h"
 
 #line 25 "main.nw"
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
     int i;
     char *locformat = "";
     char *Clocformat = "#line %L \"%F\"%N";
@@ -23,10 +21,10 @@ main(int argc, char **argv) {
     finalstage = 1;
 
     for (i=1; i<argc; i++) {
-        
+
 #line 53 "main.nw"
 if (*argv[i]=='-') {
-    
+
 #line 69 "main.nw"
     switch (argv[i][1]) {
         case 't': /* set tab size or turn off */
@@ -34,9 +32,9 @@ if (*argv[i]=='-') {
                 tabsize = atoi(argv[i]+2);
             else if (argv[i][2]==0)
                 tabsize = 0;            /* no tabs */
-            else 
+            else
                 errormsg(Error, "%s: ill-formed option %s\n", argv[0], argv[i]);
-            break;          
+            break;
         case 'R': /* change name of root module */
             root_options_seen++;
             break;
@@ -49,7 +47,7 @@ if (*argv[i]=='-') {
      }
 #line 55 "main.nw"
 } else {
-    
+
 #line 90 "main.nw"
 errormsg(Warning,
     "I can't handle arguments yet, so I'll just ignore `%s'",argv[i]);
@@ -64,9 +62,9 @@ errormsg(Warning,
     if (root_options_seen == 0)
       emit_module_named(stdout, "*", locformat);
     else
-      for (i=1; i<argc; i++) 
+      for (i=1; i<argc; i++)
         if (argv[i][0] == '-' && argv[i][1] == 'R')
-	  emit_module_named(stdout, argv[i]+2, locformat);
+    emit_module_named(stdout, argv[i]+2, locformat);
 
     nowebexit(NULL);
     return errorlevel;  /* slay warning */
