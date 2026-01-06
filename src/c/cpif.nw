@@ -1,17 +1,14 @@
 % -*- mode: Noweb; noweb-code-mode: c-mode; c-indent-level: 4 -*-
-<<header>>=
+<<*>>=
+#include <assert.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 struct cpif;
 struct cpif *cpif_open(const char *filename);
 void cpif_close(struct cpif **);
 FILE *cpif_file(struct cpif *);
-@ 
-<<*>>=
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "cpif.h"
+
 #include "errors.h"
 #include "strsave.h"
 
@@ -21,8 +18,21 @@ struct cpif {
   FILE *fp;
 };
 
-<<local prototypes>>
+#ifdef TEMPNAM
+extern char *tempnam (const char *dir, const char *pfx);        /* temp file in dir */
+#else
+#define tempnam(DIR,PFX) (strsave(tmpnam(NULL)))
+#endif
 
+@
+
+Some operating systems provide a [[tempnam]] call that makes it possible to
+create a temporary file in the current directory. This makes [[mnt]] more
+efficient by making [[rename]] efficient. If your operating system provides
+[[tempnam]], define [[TEMPNAM]] for compilation. Otherwise the local prototype
+of [[tempnam]] will be used.
+
+<<*>>=
 struct cpif *cpif_open(const char *filename) {
   struct cpif *cpif = malloc(sizeof(*cpif));
   assert(cpif);
@@ -45,7 +55,7 @@ void cpif_close(struct cpif **cpifp) {
   assert(cpifp && *cpifp);
   cpif = *cpifp;
   fclose(cpif->fp);
-  <<if file [[filename]] is as file [[tempname]], remove [[tempname]] and [[return]]>>
+  <<if file [[filename]] is the same as file [[tempname]], remove [[tempname]] and [[return]]>>
   remove(cpif->filename);
   if (rename(cpif->tempname, cpif->filename) != 0) {
     /* different file systems? Try to copy. */
@@ -70,7 +80,7 @@ void cpif_close(struct cpif **cpifp) {
      putc(x, fp);
   fclose(tmp);
 }
-<<if file [[filename]] is as file [[tempname]], remove [[tempname]] and [[return]]>>=
+<<if file [[filename]] is the same as file [[tempname]], remove [[tempname]] and [[return]]>>=
 { FILE *dest, *tmp;
   dest = fopen(cpif->filename, "r");
   if (dest != NULL) {
@@ -95,15 +105,3 @@ void cpif_close(struct cpif **cpifp) {
 errormsg(Error, "Can't open output file %s", cpif->filename);
 return;
 @ 
-\subsubsection{Temporary files}
-Some operating systems provide a [[tempnam]] call that makes it possible to 
-create a temporary file in the current directory.  This makes [[mnt]] more 
-efficient by making [[rename]] efficient.  If your operating system
-provides [[tempnam]], define [[TEMPNAM]] for compilation.
-<<local prototypes>>=
-#ifdef TEMPNAM
-extern char *tempnam (const char *dir, const char *pfx);        /* temp file in dir */
-#else
-#define tempnam(DIR,PFX) (strsave(tmpnam(NULL)))
-#endif
-@ %def tempnam

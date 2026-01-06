@@ -47,12 +47,25 @@ Rammel uses:
 
 - *Lua 5.4.8*;
 - *C Interfaces and Implementations*;
-- *Premake5*.
+- *Premake5*;
+- *GNU Make*.
 
-A TODO file is maintained in Org syntax, so using Emacs to interact with Rammel,
-in general, is preferred. The doc directory contains documents that existed
+Compatible Make implementations may function, but aren't supported.
+
+A *TODO* file is maintained in Org syntax, so using Emacs to interact with Rammel,
+in general, is preferred. The *docs* directory contains documents that existed
 within the Noweb 3 sources, from which Rammel is directly inherited from (using
 Git); this may disappear in the future.
+
+Building Rammel requires GNU Make, as the effort required to conver the
+pre-existing UNIX and NT Makefiles for Dave Hansen's CII to Premake scripts in
+Lua (which merely generate makefiles or build scripts for other build systems)
+is too high for myself (a UNIX user with GNU Make). Should you really want to
+avoid GNU Make at all costs you can convert the Makefiles to Premake5 Lua
+scripts yourself and contribute these for the benefit of the community.
+
+  Whenever the action requested of Premake5 is not "gmake" it will complain
+  about this.
 
 <!-- Local Variables: -->
 <!-- mode: markdown -->

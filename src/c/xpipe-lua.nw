@@ -22,7 +22,7 @@ C.
 <<XPipe-program>>
 <<XPipe-connect>>
 <<XPipe-print>>
-<<XPipe-execute>>
+<<XPipe-execute ((lua2))>>
 <<XPipe-free>>
 <<Lua registration of functions>>
 
