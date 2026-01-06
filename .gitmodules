@@ -4,3 +4,6 @@
 [submodule "lua-5"]
 	path = vendor/lua-5.4.8
 	url = git@github.com:lua/lua.git
+[submodule "vendor/lua-2.5"]
+	path = vendor/lua-2.5
+	url = git@github.com:lua/lua.git
