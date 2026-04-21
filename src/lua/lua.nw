@@ -1,3 +1,6 @@
+<!-- Markdown & Noweb -->
+<!-- Using a local poly-noweb-md mode, but that's currently broken. -->
+
 # `autodefs.nw`: automatic definitions recognition (in Icon)
 
 This section is never tangled, because the code wasn't converted from Icon to
@@ -25,9 +28,9 @@ Lua, except (apparently) the first line.
     static indextext
     initial indextext := ""
     if /defn then
-        *indextext > 0 & <<flush index>>
+        *indextext > 0 & @<<flush index>>
     else {
-        if *indextext + *defn > 65 then <<flush index>>
+        if *indextext + *defn > 65 then @<<flush index>>
             write(if \locl then "@index localdefn " else "@index defn ", defn)
               indextext ||:= " " || defn
               }
@@ -49,9 +52,13 @@ pre-formatted text to be the "flush index" code chunk.
 # Internal filters
 This section was originally in the file "cat.nw".
 
-I have suspicions about the original formatting of the line referencing the "announce `argv`" chunk. That was `-- < announce [[argv]]>>`. It's a valid Lua comment, but it wouldn't properly expand in Noweb. Did Norman intend this as an escaped reference (`@<<`)? For now I will keep it as an escaped chunk reference, sine it was definitely a comment and therefore ineffective code.
+I have suspicions about the original formatting of the line referencing the
+"announce `argv`" chunk. That was `-- < announce [[argv]]>>`. It's a valid Lua
+comment, but it wouldn't properly expand in Noweb. Did Norman intend this as an
+escaped reference (`@<<`)? For now I will keep it as an escaped chunk reference,
+sine it was definitely a comment and therefore ineffective code.
 
-<<cat.lua>>=
+<<cat.nws>>=
 function Stages.cat(inbuf, outbuf, argv)
   local key, arg, r
   --@<<announce `argv`>>
@@ -81,7 +88,7 @@ end
 The following $\LaTeX{}$ module was used to keep Hacker's guide documentation
 close to its definition, but allowing it to be tangled into a separate document.
 
-    <<hackers: subsubsections for internal sinks>>=
+    @<<hackers: subsubsections for internal sinks>>=
 
     \subsubsection{The filter \texttt{Stages.cond}}
 
@@ -128,6 +135,8 @@ end
 @ 
 
 # Configuration files
+
+`do_nwfile` is implemented in the embedding program, not in Lua.
 
 <<noweb.cfg>>=
 $debug
@@ -226,7 +235,7 @@ end
 
 Another Hacker's Guide $\LaTeX{}$ module.
 
-    <<hackers: entries for Lua functions>>=
+    @<<hackers: entries for Lua functions>>=
     errormsg&
     Takes up to 8~arguments and writes them to standard error.
     Arguments may be strings, numbers, or lists.\\
@@ -239,7 +248,7 @@ end
 
 Yet another.
 
-    <<hackers: entries for Lua functions>>=
+    @<<hackers: entries for Lua functions>>=
     noweb\_error&
     Halts \texttt{noweb} with an error message consisting of up to
     9~arguments.\\ 
@@ -286,7 +295,7 @@ function pipetrace(x)
 end
 @
 
-    <<hackers: entries for Lua functions>>=
+    @<<hackers: entries for Lua functions>>=
     pipetrace&
     If given a non-null argument, starts tracing every call to
     \texttt{NWB.read} and \texttt{NWB.put}.
@@ -322,7 +331,7 @@ function Win.stringFilter(s)
 end
 @
 
-    <<hackers: entries for Lua functions>>=
+    @<<hackers: entries for Lua functions>>=
     Unix.stringFilter&
     Win.stringFilter&
     Takes one argument, a shell command,
@@ -404,7 +413,7 @@ end
 return s .. " }"
 @ 
 
-    <<hackers: entries for Lua functions>>=
+    @<<hackers: entries for Lua functions>>=
     image&
     Attempts to convert any Lua value to string form.\\
     show&
@@ -454,7 +463,7 @@ function funname(x)
 end
 @
 
-    <<hackers: entries for Lua functions>>=
+    @<<hackers: entries for Lua functions>>=
     funname&
     Attempts to return a name by which a Lua value can be known.
     Searches top-level variables, then top-level tables.
@@ -485,100 +494,6 @@ end
 Config.prevpipeconcatfallback = setfallback("concat", Config.pipeconcatfallback)
 @
 
-# Converting documentation chunks to comments
-<<docs2comment.lua>>=
-CommentFuns = {}
-
-function Filters.docs2comment(inbuf, outbuf, argv)
-  local i, fmt, pat1, repl1, pat2, repl2, width, k, v
-  width = 72
-  i = 1
-  while i <= length(argv) do
-    if matchpattern(argv[i], "-ml") or
-       matchpattern(argv[i], "-m3") then fmt="(* %%-%ds *)"
-	              pat1 = "%*%)"; repl1 = "* )"; pat2 = "%(%*"; repl2 = "( *"
-    elseif matchpattern(argv[i], "-awk") or
-           matchpattern(argv[i], "-icn") or
-           matchpattern(argv[i], "-icon") then fmt="# %%-%ds"
-    elseif matchpattern(argv[i], "-lisp") , "-scm" =>	    fmt=";;; %%-%ds"
-    elseif matchpattern(argv[i], "-c++") =>    fmt="// %%-%ds"
-    elseif matchpattern(argv[i], "-c") =>      fmt="/* %%-%ds */"
-                   pat1 = "%*%/"; repl1 = "* /"; pat2 = "%/%*"; repl2 = "/ *"
-    elseif matchpattern(argv[i], "-pascal") => fmt="{ %%-%ds }" pat1 = "[{}]"; repl1 = "-"
-    elseif matchpattern(argv[i], "-f77") =>    fmt="C %%-%ds"
-    elseif matchpattern(argv[i], "-f90") =>    fmt="! %%-%ds"
-    elseif matchpattern(argv[i], "-tex") =>    fmt="%%%% %%-%ds"
-    elseif matchpattern(argv[i], "-w[0-9]") or
-           matchpattern(argv[i], "-w[0-9][0-9]") or
-           matchpattern(argv[i], "-w[0-9][0-9][0-9]") or
-           matchpattern(argv[i], "-w[0-9][0-9][0-9][0-9]") then
-             width=tonumber(strsub(argv[i], 3))
-    else
-      error("Unrecognized option ", argv[i], " to Filters.docs2comment")
-    end
-    i++
-  done
-  if not fmt then 
-    error("Language not specified to Filters.docs2comment")
-  end
-  fmt = format(fmt, width)
-  
-  holding = List.new {}
-
-  rdr = NowebBuffer.reader(in)
-  k, v = NowebBuffer.read(rdr)
-  while k do
-    case k of
-    | NW_END_DOCS => capture = nil; List.put(holding, "")
-    | NW_BEGIN_DOCS => capture = 1
-
-    | NW_TEXT => 
-/^@end doc/ { capture = 0; holding[++line] = "" ; next }
-/^@begin doc/ { capture = 1; next }
-
-/^@text /     { grab(substr($0,7)); next}
-/^@quote$/    { grab("[[") ; next}
-/^@endquote$/ { grab("]]") ; next}
-
-/^@nl$/ { if (capture !=0 ) {
-            holding[++line] = ""
-          } else if (defn_pending != 0) {
-	    print "@nl"
-            for (i=0; i<=line && holding[i] ~ /^ *$/; i++) i=i
-            for (; i<=line; i++) printf "@text %s\n@nl\n", comment(holding[i])
-            line = 0; holding[0] = ""
-            defn_pending = 0
-          } else print
-          next  
-        }
-
-/^@defn / { holding[line] = holding[line] "<"substr($0,7)">=" # (line should be blank)
-            print ; defn_pending = 1 ; next }
-{ print }' |
-    
-
-  
-	case $1 in
-	shift
-done
-
-width=72 subst='gsub("\\*/", "* /", s)' format='/* %%-%ds */'
-PATH="$PATH:$LIB" eval "$markup $arg $filters" |
-nawk 'BEGIN { line = 0; capture = 0; format=sprintf("'"$format"'",'"$width"') }
-
-function comment(s) {
-    '"$subst"'
-    return sprintf(format,s)
-}
-
-function grab(s) {
-  if (capture==0) print
-  else holding[line] = holding[line] s
-}
-   
-eval "$LIB/nt $opt"
-@
-
 # Eliding unwanted code chunks
 
 This filter removes from the pipline any code chunk
@@ -589,7 +504,7 @@ defined as ``\LA{}RefMan\_Chapter\_14\RA{}''.
 
 You could also use this filter when tangling, but it's not clear why you'd want to.
 
-    <<hackers: subsubsections for internal filters>>=
+    @<<hackers: subsubsections for internal filters>>=
     \subsubsection{The filter \texttt{Stages.elide}}
     The filter \texttt{Stages.elide} removes code chunks from a stream.
     It is most frequently used to remove ``code chunks'' that actually
@@ -616,7 +531,7 @@ The main loop simply copies the input to the output.
 We stop only if we see [[@begin code]], because that means we might
 need to elide.
 
-<<elide.lua>>=
+<<elide.nws>>=
 function Stages.elide(sourcebuf, sinkbuf, globs)
   local rcsinfo = "$Id$" ..
                   "$Name$"
@@ -698,7 +613,7 @@ end
 `Stages.elideuse` elides uses, plus following whitespace,
 and if whitespace and a newline follow, the use and the preceding whitespace.
 
-<<elide.lua>>=
+<<elide.nws>>=
 function Stages.elideuse(sourcebuf, sinkbuf, globs)
   local rcsinfo = "$Id$" ..
                   "$Name$"
@@ -748,7 +663,7 @@ end
 
 `Lines.strfind` extends `strfind` to lists.
 
-<<lines.lua>>=
+<<lines.nws>>=
 Lines = Lines or { }
 
 function Lines.matchany(s, pats, n)
@@ -769,7 +684,7 @@ end
 argument.
 Argument may be a pattern or a list of patterns.
 
-<<lines.lua>>=
+<<lines.nws>>=
 -- remove texts containing the evil string
 function Stages.droptext(inbuf, outbuf, evil)
   if type(evil) == "string" then evil = List.fromstring(evil) end
@@ -799,7 +714,7 @@ function Lines.strfindlist(haystack, needles, n)
 end
 @ 
 [[Stages.eattext]] replaces matching texts with a literal [[\eatline]].
-<<lines.lua>>=
+<<lines.nws>>=
 -- remove texts containing the evil string
 function Stages.eattext(inbuf, outbuf, evil)
   if type(evil) == "string" then evil = List.new({evil}) end
@@ -820,7 +735,7 @@ end
 
 More *Hacker's Guide* text.
 
-    <<hackers: subsubsections for internal filters>>=
+    @<<hackers: subsubsections for internal filters>>=
     \subsubsection{The filters \texttt{Stages.droptext} and \texttt{Stages.eattext}}
     The filters \texttt{Stages.droptext} and \texttt{Stages.eattext}
     remove text fragment chunks from a stream.
@@ -842,11 +757,11 @@ More *Hacker's Guide* text.
 
 # Lists
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.length&Number of elements in a list.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 List = {}
 
 function List.length(list)
@@ -871,7 +786,7 @@ function List.length(list)
     return lo
   end
 end
-<<lists.lua>>=
+<<list.nws>>=
 function List.slow_length(list)
   local i, n, v
   i = nil
@@ -889,11 +804,11 @@ function List.slow_length(list)
 end
 @ 
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.is&Returns non-nil if the argument is a list.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 function List.is(list)
   if type(list) ~= "table" then return nil end
   local i = 1
@@ -903,13 +818,13 @@ function List.is(list)
 end
 @
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.get&
     Removes and returns the first element of a list.
     Side-effects (modifies) the list.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 function List.get(list)
   local x, n, i
   x = list[1]
@@ -924,7 +839,7 @@ function List.get(list)
 end
 @
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.put&
     Takes two arguments, a list and an item, 
     and appends the item to the end of the list.\\
@@ -936,13 +851,13 @@ function List.put(list, item)
 end
 @ 
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.flatten&
     Takes the values in a list, converts them to strings with
     \texttt{tostring}, and concatenates them.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 function List.flatten(l)
   local i = 1
   s = ""
@@ -951,12 +866,12 @@ function List.flatten(l)
 end
 @ 
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.concat&
     Concatenates two lists, returning the new list as a result.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 function List.concat(l1, l2)
   local l, i, n, m
   l = {}
@@ -977,7 +892,7 @@ end
 
 @ 
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.new&
     Takes a table literal and returns a list, or 
     given no argument, returns a fresh, empty list.
@@ -985,20 +900,20 @@ end
     implementation of lists.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 function List.new(tbl)
   return tbl or { }
 end
 @ 
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.tostring&
     Concatenates list elements as strings.
     Takes a list and a second argument, the ``separator.''
     Separator defaults to a space.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 -- concatenate list elements as strings
 function List.tostring(l, sep)
   local s, i, n
@@ -1018,12 +933,12 @@ function List.tostring(l, sep)
 end
 @
 
-    <<hackers: entries for list functions>>=
+    @<<hackers: entries for list functions>>=
     List.fromstring&
     Takes a string, splits it on white space, and makes a list of the results.\\
     @
 
-<<lists.lua>>=
+<<list.nws>>=
 -- concatenate list elements as strings
 function List.fromstring(s)
   local l = List.new()
@@ -1037,7 +952,7 @@ function List.fromstring(s)
   return l
 end
 @ be generous here
-<<lists.lua>>=
+<<list.nws>>=
 function List.concatfallback(x, y)
   if type(x) .. "," .. type(y) == "table,table" then return List.concat(x, y)
   elseif type(x) .. "," .. type(y) == "table,nil" then return x
@@ -1049,6 +964,7 @@ function List.concatfallback(x, y)
 end
 
 List.prevconcatfallback = setfallback("concat", List.concatfallback)
+@
 
 # Cross-reference and index support
 
@@ -1056,12 +972,12 @@ List.prevconcatfallback = setfallback("concat", List.concatfallback)
     a label and {\it tag} is a chunk number, page number, sub-page number, or
     other identifying mark.
 
-<<noidx.lua>>=
+<<noidx.nws>>=
 Noidx = { }
 
 @
 
-    <<hackers: subsubsections for internal filters>>=
+    @<<hackers: subsubsections for internal filters>>=
     \subsubsection{The filter \texttt{Stages.noidx}}
     
     \texttt{Stages.noidx} computes all the index and cross-reference information
@@ -1102,7 +1018,7 @@ Noidx = { }
     whether \texttt{-dbin} precedes or succeeds \texttt{-dbout}.
     @
 
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Stages.noidx(sourcebuf, sinkbuf, args)
 --global lines		# all the input lines
   local delay		-- non-null if markup should be delayed past the first chunk 
@@ -1168,7 +1084,7 @@ while List.length(args) > 0 do
   end
 end
 @
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.add_db_defns(chunk, first, last)
   local db = Noidx.nextdb
   local mine = db[chunk]
@@ -1178,7 +1094,7 @@ function Noidx.add_db_defns(chunk, first, last)
     db[chunk] = { first = first, last = last }
   end
 end
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.add_db_use(chunk, use)
   local db = Noidx.usedb
   local mine = db[chunk]
@@ -1188,7 +1104,7 @@ function Noidx.add_db_use(chunk, use)
     db[chunk] = List.new { use }
   end
 end
-<<noidx.lua>>=
+<<noidx.nws>>=
 --global curfile		# unique id of the current @file
 --global lastbeginarg	# identifies last chunk (for -delay)
 <<initialization>>=
@@ -1200,7 +1116,7 @@ The {\LaTeX} back end typically uses the chunk itself, but the HTML
 back end will use a spot in the preceding documentation chunk (if
 any), as requested by [[-docanchor]] (and non-null [[anchordist]])
 and recorded in [[anchorlabel]].
-<<noidx.lua>>=
+<<noidx.nws>>=
 --global allchunks, allidents
 --global indexlabels, defanchors, uses, anchorlabel, indexanchorlabel
 <<initialization>>=
@@ -1304,7 +1220,7 @@ rolls around, we have to slip it in on pass~1.
 @
 <<insert and set [[lastanchorlabel]]>>=
 lastanchorlabel = Noidx.insertAnchor(newbuf, anchordist)
-<<noidx.lua>>=
+<<noidx.nws>>=
 Noidx = Noidx or { }
 function Noidx.insertAnchor(buf, n)
   local t = List.new {}
@@ -1327,7 +1243,7 @@ function Noidx.insertAnchor(buf, n)
   return lbl
 end
 @ 
-<<noidx.lua>>=
+<<noidx.nws>>=
 --  static thesedefns, theseuses
 --  static thischunk # null for docs chunk, arg of @defn for code chunk
 --  static defout		# number of definitions emitted for each chunk
@@ -1470,7 +1386,7 @@ The following code is incompatible with Noweb 2.10c, but it produces
 better labels, which make the 152 text work better because it doesn't
 matter if files are processed together or separately.
 Noweb~2.10d has been changed to use this method, too.
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.newdefnlabel(arg)
   defanchors[arg] = defanchors[arg] or List.new()
   local key = curfile .. "-" .. Noidx.uniqueid(arg)
@@ -1479,12 +1395,12 @@ function Noidx.newdefnlabel(arg)
 end
 <<initialization>>=
 Noidx.docsLabelCount = 0
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.newdocslabel()
   Noidx.docsLabelCount = Noidx.docsLabelCount + 1
   return "NWD" .. curfile .. "-" .. alphacode(Noidx.docsLabelCount)
 end
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.addlabel(tbl, arg, label)
   tbl[arg] = tbl[arg] or List.new {}
   local n = List.length(tbl[arg])
@@ -1493,7 +1409,7 @@ function Noidx.addlabel(tbl, arg, label)
   end
   return label
 end
-<<noidx.lua>>=      
+<<noidx.nws>>=      
 -- global chunkud, indexud
 function Noidx.addud(udlist, name, arg, label)
   udlist[arg] = udlist[arg] or List.new {}
@@ -1509,7 +1425,7 @@ indexud = {}
 @
 Because it's silly to have both a use and a definition point to the same chunk, 
 I strip out uses that list the same chunk as their definitions.
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.strip_extra_uses(udlista)
   local old, new, item, i, n
   n = List.length(udlista)
@@ -1552,7 +1468,7 @@ Noidx.crc_prefix = Noidx.crc_prefix or ''
 Noidx.active_crc_prefix = ''
 <<case for [[crc_prefix]]>>=
 elseif key == "crc_prefix" then Noidx.active_crc_prefix = arg == "on" and Noidx.crc_prefix or ""
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.uniqueid(name)
   if not Noidx.idtable[name] then
     -- local key = Noidx.make_key(gsub(name, '[^%a%d!$%(%)%*+,%./:;=%?@|]', "*")) 
@@ -1585,7 +1501,7 @@ return if has / then
   else tail || alphacode(strlen(key))
 else if has 3 then first 3 || alphacode(*key)
 else key 
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.make_key(key)
   local answer
   if strfind(key, "/") then
@@ -1604,7 +1520,7 @@ function Noidx.make_key(key)
     end
   end
 end
-<<noidx.lua>>=
+<<noidx.nws>>=
 -- global wrote_trailers
 <<write trailers if not already written>>=
 if not Noidx.wrote_trailers then
@@ -1620,7 +1536,7 @@ Noidx.wrote_trailers = nil
 
 Now, a special hack, so we can write this stuff in the right place on pass 2.
 
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.lognowebchunks(sinkbuf)
   if Noidx.logged_chunks then return end
   Noidx.logged_chunks = 1
@@ -1655,7 +1571,7 @@ end
 <<initialization>>=
 Noidx.logged_chunks = nil
 Noidx.logged_index = nil
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.lognowebindex(sinkbuf)
   if Noidx.logged_index then return end
   Noidx.logged_index = 1
@@ -1688,7 +1604,7 @@ function Noidx.lognowebindex(sinkbuf)
   end
   NWB.put(sinkbuf, NW_INDEX_ENDINDEX)
 end
-<<noidx.lua>>=
+<<noidx.nws>>=
 Noidx.alphacodes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 function alphacode(n)
@@ -1702,7 +1618,7 @@ function alphacode(n)
   end
 end
 @ 
-<<noidx.lua>>=
+<<noidx.nws>>=
 function Noidx.rcsinfo () 
   return "$Id$" ..
          "$Name$"
@@ -1711,14 +1627,14 @@ end
 
 # Sets
 
-<<sets.lua>>=
+<<set.nws>>=
 Set = {}
 @
-    <<hackers: entries for set functions>>=
+    @<<hackers: entries for set functions>>=
     Set.length&
     Number of elements in a set.\\
     @
-<<sets.lua>>=
+<<set.nws>>=
 function Set.length(set)
   local i, n, v
   i = nil
@@ -1732,11 +1648,11 @@ function Set.length(set)
   return n
 end
 @
-    <<hackers: entries for set functions>>=
+    @<<hackers: entries for set functions>>=
     Set.members&
     Returns list of the elements in a set.\\
     @
-<<sets.lua>>=
+<<set.nws>>=
 function Set.members(set)
   local i, n, v
   local l = { }
@@ -1752,7 +1668,7 @@ function Set.members(set)
   return List.new(l)
 end
 @
-    <<hackers: entries for set functions>>=
+    @<<hackers: entries for set functions>>=
     Set.insert&
     Takes a set and an item, and adds the item to the set.\\
     Set.delete&
@@ -1761,7 +1677,7 @@ end
     Takes a set and an item, and returns non-null if and only if the item
     is in the set.\\
     @
-<<sets.lua>>=
+<<set.nws>>=
 function Set.insert(set, item)
   if type(set) ~= "table" then
     errormsg("Inserting into non-set ", image(set), " of type ", type(set))
@@ -1778,14 +1694,14 @@ function Set.member(set, item)
 end
 @
 
-    <<hackers: entries for set functions>>=
+    @<<hackers: entries for set functions>>=
     Set.diff&
     \texttt{Set.diff(s1, s2)} returns a new set containing 
     all of the elements of~\texttt{s1} that are not members of~\texttt{s2}.
     Fallbacks are set up so the subtraction operator invokes \texttt{Set.diff}.\\
     @
 
-<<sets.lua>>=
+<<set.nws>>=
 function Set.diff(big, little)
   local diff = { }
   local i, v
@@ -1800,7 +1716,7 @@ function Set.diff(big, little)
 end
 @
 
-    <<hackers: entries for set functions>>=
+    @<<hackers: entries for set functions>>=
     Set.new&
     Takes a list of elements and returns a set containing those elements.
     With no argument, returns a fresh, empty set.
@@ -1808,7 +1724,7 @@ end
     implementation of sets.\\
     @
 
-<<sets.lua>>=
+<<set.nws>>=
 function Set.new (tbl)
   if not tbl then return { } end
   local t = { }
@@ -1820,7 +1736,7 @@ function Set.new (tbl)
   return t
 end
 @ 
-<<sets.lua>>=
+<<set.nws>>=
 function Set.arithfallback(x, y, op)
   if type(x) == "table" and type(y) == "table" then
     if op == "sub" then return Set.diff(x, y)
@@ -1834,7 +1750,7 @@ Set.prevarithfallback = setfallback("arith", Set.arithfallback)
 
 # Simple conditional tangling
 
-    <<hackers: subsubsections for internal sinks>>=
+    @<<hackers: subsubsections for internal sinks>>=
     \subsubsection{The filter \texttt{Stages.stripconds}}
     
     The filter \texttt{Stages.stripconds} enables the Noweb programmer to
@@ -1857,7 +1773,7 @@ Set.prevarithfallback = setfallback("arith", Set.arithfallback)
     \texttt{Stages.stripconds}.
     @
 
-<<stripconds.lua>>=
+<<stripconds.nws>>=
 function Stages.stripconds(sourcebuf, sinkbuf, args)
   if type(args) == "string" then args = List.fromstring(args) end
   local use = nil
@@ -1893,7 +1809,7 @@ end
 
 # Tangle
 
-<<tangle.lua>>=
+<<tangle>>=
 -- Copyright 1991 by Norman Ramsey.  All rights reserved.
 -- See file COPYRIGHT for more information.
 $debug
@@ -1970,7 +1886,7 @@ exit(P.run(p))
 
 # Converting `noweb` markup to HTML markup (Lua version)
 
-    <<hackers: subsubsections for internal sinks>>=
+    @<<hackers: subsubsections for internal sinks>>=
     \subsubsection{The sink \texttt{Stages.tohtml}}
     
     This back end emits HTML.
@@ -1994,7 +1910,7 @@ The [[-raw]] option brackets HTML with [[\begin{rawhtml}]] and
 document before converting the document with {\tt latex2html}.
 [[braw]] and [[eraw]] hold those delimiters (or else empty strings).
 
-<<tohtml.lua>>=
+<<tohtml.nws>>=
 <<copyright notice>>
 -- Don't try to understand this file!  Look at lua/tohtml.nw in the noweb source!
 
@@ -2463,7 +2379,7 @@ are protected with [[Tohtml.braw]] and [[Tohtml.eraw]].
 This step is necessary to make \verb=noweave -latex+html= work without
 trapping {\LaTeX} markup in a \texttt{rawhtml} environment.
 
-<<tohtml.lua>>=
+<<tohtml.nws>>=
 function linklabelto(label, ref, contents, bare)
   local s
   s = ""
@@ -2483,7 +2399,7 @@ end
 
 Here are two abbreviations.
 
-<<tohtml.lua>>=
+<<tohtml.nws>>=
 function linklabel(label, contents, bare)
   return linklabelto(label, nil, contents, bare)
 end
@@ -2499,7 +2415,7 @@ Reasonable people could disagree.
 
 Another support function is used for wrapping tags around text:
 
-<<tohtml.lua>>=
+<<tohtml.nws>>=
 function sgmlwrap(tag, s)
   return "<" .. tag .. ">" .. s .. "</" .. tag .. ">"
 end
@@ -2509,7 +2425,7 @@ Lucky for us, {\tt HTML} has few special characters.  Unlucky for us,
 we have to deal with each one seperately.  Nothing much to whine
 about, really.
 
-<<tohtml.lua>>=
+<<tohtml.nws>>=
 Tohtml.escapes = { }
 Tohtml.escapes["&"] = "&amp;"
 Tohtml.escapes["<"] = "&lt;"
@@ -2534,7 +2450,7 @@ end
 A special function is used to implement {\tt noweb}'s quoting 
 convention within chunk names.
 
-<<tohtml.lua>>=
+<<tohtml.nws>>=
 function Tohtml.convquotes(s)
   local l, r, t, start
   t = ""
@@ -2564,7 +2480,7 @@ generated shell script.
 -- Copyright 1991-1998 by Norman Ramsey.  All rights reserved.
 -- See file COPYRIGHT for more information.
 
-    <<hackers: subsubsections for internal sinks>>=
+    @<<hackers: subsubsections for internal sinks>>=
     \subsubsection{The sink \texttt{Stages.totex}}
     
     {\tt Stages.totex} implements both the plain {\TeX} and {\LaTeX} back ends,
@@ -2584,7 +2500,7 @@ generated shell script.
 
 Here's the organization of the source:
 
-<<totex.lua>>=
+<<totex.nws>>=
 <<copyright notice>>
 function mywrite (l)
   if type(l) == "string" or type(l) == "number" then write(l)
@@ -3074,14 +2990,14 @@ function split_first_space(s)
   end
 end
 @ 
-<<totex.lua>>=
+<<totex.nws>>=
 <<*>>
 
 @ 
 
 # Convert Noweb pipeline back to ASCII form
 
-<<unmarkup.lua>>=
+<<unmarkup.nws>>=
 -- Copyright 1991,1999 by Norman Ramsey.  All rights reserved.
 -- See file COPYRIGHT for more information.
 
@@ -3172,7 +3088,7 @@ P = MPipe
 
 I'm assuming we defined a [[concat]] fallback that works on lists.
 
-<<*>>=
+<<weave>>=
 <<copyright notice>>
 <<renaming of builtins>>
 <<initialization>>
@@ -3830,18 +3746,18 @@ Since such a definition can be written in one line (two lines if the
 definition is followed by a documentation chunk), he can pull in many
 definitions concisely.
 
-This program is the noweb filter that does the job.
-Named ``\texttt{xchunks},'' short for ``external chunks,'' it pulls in
-definitions from an external database.
-The external database is itself simply a list of Noweb files.
-It's a bit more liberal than defined above; a chunk is considered
-empty if its definition contains at most whitespace.
+This program is the noweb filter that does the job. Named "\texttt{xchunks},"
+short for "external chunks," it pulls in definitions from an external database.
+The external database is itself simply a list of Noweb files. It's a bit more
+liberal than defined above; a chunk is considered empty if its definition
+contains at most whitespace.
 
-N.B. THIS CODE LACKS SUPPORT FOR THE [[-merge]] AND [[-summary]]
-OPTIONS SUPPORTED BY THE ICON VERSION. 
+> [!NOTE]
+> *Nota bene:* this code lacks support for the `-merge` and `-summary` options
+> supported by the Icon version.
 
 A late-breaking bug: we need to resynchronize line numbers.
-<<*>>=
+<<xchunks.nws>>=
 Xchunks = { }
 
 function Stages.xchunks(inbuf, outbuf, argv)
@@ -3878,7 +3794,7 @@ end
 @ 
 Reading chunks is fairly straightforward; we look for begin and end.
 The loop logic is a little less pleasant than I would like.
-<<*>>=
+<<xchunks.nws>>=
 function Xchunks.readchunks(buf)
   local chunks, c
   chunks = List.new()
@@ -3931,7 +3847,7 @@ function Xchunks.readchunks(buf)
 end
 @ 
 Building the definitions table is easy.
-<<*>>=
+<<xchunks.nws>>=
 function Xchunks.defnstable(chunks)
   local t = {}
   local i = 1
@@ -3948,6 +3864,135 @@ function Xchunks.defnstable(chunks)
 end
 @ 
 
+# Lua 5.5+
+
+Lua 2.5+nw code compatible with Lua 5+ (the plus symbol means different things
+for each version) will be included in the "Compatible" subsection and that code
+which is incompatible with Lua 5+ will be in the "Incompatible" subsection.
+
+## Compatible: Lua 2.5
+
+## Incompatible: Lua 2.5+nw
+
+Three additional reserved words useful to the implementation of `no` are added to Lua 2.5 to make it Lua 2.5+nw,
+they are:
+
+- `case`
+- `globmatch`
+- `of`
+
+These additional keywords are used as below, in the C definition of the parsing
+of the modified Lua syntax.
+
+> ```{c}
+> | CASE expr1 OF case_body END
+>
+> | GLOBMATCH expr1 OF glob_body END
+> ```
+
+There's also an additional token in the abstract syntax of Lua, `ARROW`.
+
+### Converting documentation chunks to comments
+
+This filter converts documentation chunks to comments. It will use whichever
+commentary syntax is appropriate and convert the documentation in the docs
+chunks into comments. It is meant to be used with tangle for distributing
+Noweb-formatted literate programs to non-users.
+
+<<docs2comment.lua>>=
+CommentFuns = {}
+
+function Filters.docs2comment(inbuf, outbuf, argv)
+  local i, fmt, pat1, repl1, pat2, repl2, width, k, v
+  width = 72
+  i = 1
+  while i <= length(argv) do
+    if matchpattern(argv[i], "-ml") or
+       matchpattern(argv[i], "-m3") then fmt="(* %%-%ds *)"
+	              pat1 = "%*%)"; repl1 = "* )"; pat2 = "%(%*"; repl2 = "( *"
+    elseif matchpattern(argv[i], "-awk") or
+           matchpattern(argv[i], "-icn") or
+           matchpattern(argv[i], "-icon") then fmt="# %%-%ds"
+    elseif matchpattern(argv[i], "-lisp") , "-scm" =>	    fmt=";;; %%-%ds"
+    elseif matchpattern(argv[i], "-c++") =>    fmt="// %%-%ds"
+    elseif matchpattern(argv[i], "-c") =>      fmt="/* %%-%ds */"
+                   pat1 = "%*%/"; repl1 = "* /"; pat2 = "%/%*"; repl2 = "/ *"
+    elseif matchpattern(argv[i], "-pascal") => fmt="{ %%-%ds }" pat1 = "[{}]"; repl1 = "-"
+    elseif matchpattern(argv[i], "-f77") =>    fmt="C %%-%ds"
+    elseif matchpattern(argv[i], "-f90") =>    fmt="! %%-%ds"
+    elseif matchpattern(argv[i], "-tex") =>    fmt="%%%% %%-%ds"
+    elseif matchpattern(argv[i], "-w[0-9]") or
+           matchpattern(argv[i], "-w[0-9][0-9]") or
+           matchpattern(argv[i], "-w[0-9][0-9][0-9]") or
+           matchpattern(argv[i], "-w[0-9][0-9][0-9][0-9]") then
+             width=tonumber(strsub(argv[i], 3))
+    else
+      error("Unrecognized option ", argv[i], " to Filters.docs2comment")
+    end
+    i++
+  done
+  if not fmt then 
+    error("Language not specified to Filters.docs2comment")
+  end
+  fmt = format(fmt, width)
+  
+  holding = List.new {}
+
+  rdr = NowebBuffer.reader(in)
+  k, v = NowebBuffer.read(rdr)
+  while k do
+    case k of
+    | NW_END_DOCS => capture = nil; List.put(holding, "")
+    | NW_BEGIN_DOCS => capture = 1
+
+    | NW_TEXT => 
+/^@end doc/ { capture = 0; holding[++line] = "" ; next }
+/^@begin doc/ { capture = 1; next }
+
+/^@text /     { grab(substr($0,7)); next}
+/^@quote$/    { grab("[[") ; next}
+/^@endquote$/ { grab("]]") ; next}
+
+/^@nl$/ { if (capture !=0 ) {
+            holding[++line] = ""
+          } else if (defn_pending != 0) {
+	    print "@nl"
+            for (i=0; i<=line && holding[i] ~ /^ *$/; i++) i=i
+            for (; i<=line; i++) printf "@text %s\n@nl\n", comment(holding[i])
+            line = 0; holding[0] = ""
+            defn_pending = 0
+          } else print
+          next  
+        }
+
+/^@defn / { holding[line] = holding[line] "<"substr($0,7)">=" # (line should be blank)
+            print ; defn_pending = 1 ; next }
+{ print }' |
+    
+
+  
+	case $1 in
+	shift
+done
+
+width=72 subst='gsub("\\*/", "* /", s)' format='/* %%-%ds */'
+PATH="$PATH:$LIB" eval "$markup $arg $filters" |
+nawk 'BEGIN { line = 0; capture = 0; format=sprintf("'"$format"'",'"$width"') }
+
+function comment(s) {
+    '"$subst"'
+    return sprintf(format,s)
+}
+
+function grab(s) {
+  if (capture==0) print
+  else holding[line] = holding[line] s
+}
+   
+eval "$LIB/nt $opt"
+@
+
+The definitions in this chunk utilize the new `case` and `of` reserved words. It appears that the cases in this code are inspired by AWK.
 
 @
 
