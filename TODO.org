@@ -1,14 +1,14 @@
 #+TITLE: Rammel
 #+AUTHOR: Bryce Carson
 
-* What is going on in this TODO file?
-The things which need to be built are as follows:
+* What is going on in this TODO file? :note:readme:
+The directories or conceptual objects which need to be built are as follows:
 
-1. C
-2. Lua
-3. Tools
-4. Vendored
-5. Rammel
+- C
+- Lua
+- Tools
+- Vendored
+- Rammel
 
 The order in which they need to be built is different, however. That order is:
 
@@ -25,1442 +25,63 @@ the workfile for myself in which I am creating the Premake5 script to build
 Rammel, and where I am taking notes as I learn about the architecture of Noweb 3
 and hack it into what Rammel is to become.
 
-* TODO replace nwconfig and the top-level makefile with Premake5
-Premake5 is used to replace user-edited Makefile script "nwconfig", providing a
-nicer, better documented build procedure.
-
-#+begin_src fundamental :noweb yes :tangle premake5.lua
-  --[[© 2025 Bryce Carson.
-    See the file README for more information on copying this software.]]
-  <<options>>
-  <<tools>>
-  <<vendored>>
-  <<Lua>>
-  <<C>>
-  <<Rammel>>
-#+end_src
-
-** [options] Build-time Configuration Options
-All the options for configuring Noweb 3 are also present in Rammel,
-but implemented in Premake5 rather than Make variables.
-
-The configuration arguments,
-set interactively or at the command-line,
-are as follows:
-
-- LD         :: what to call to build an executable binary
-- LDFLAGS    :: general flags used to build an executable
-- LIBPROLOG  :: anything you need to place before listing libraries
-- LIBEPILOG  :: anything you need to place after listing libraries
-
-#+begin_src lua :noweb-ref options
-  local opts = {
-    -- Kernel-related Options
-    PIPE = {
-      value = "SYSTEM_CALL",
-      description = "How to run pipelines of programs and utilties.",
-      allowed = {
-        { "fork", "Create a child process by duplicating the calling process." },
-        { "spawn", "Create a child process with the combined functionality of ``fork'' and ``exec''." }
-      },
-      default = "fork",
-      category = "System Calls"
-    },
-
-    -- Paths
-    BIN = {
-      value = "DIRECTORY",
-      description = "The installation location for the 'no' command",
-      default = "/usr/bin",
-      category = "Paths"
-    },
-
-    LIBEXEC = {
-      value = "(SUB)DIRECTORY",
-      description = "The installation location of Rammel scripts and configuration files",
-      default = "/usr/libexec/rammel",
-      category = "Paths"
-    },
-
-    TEXINPUTS = {
-      value = "TEXMF_SUBDIRECTORY",
-      description = "The installation location for LaTeX styles and macros (following the TeX Directory Standard)",
-      default = "/usr/share/texlive/texmf-local/tex/latex/rammel",
-      category = "Paths"
-    },
-
-    SHELL = {
-      value = "PROGRAM_PATH",
-      description = "The shell to use when calling scripts.",
-      default = "/usr/bin/bash",
-      category = "Paths"
-    },
-
-    -- Compilation settings
-    CC = {
-      value = "COMPILER",
-      description = "The name of an ANSI C compiler.",
-      category = "C Compilation"
-    },
-    CFLAGS = {
-      value = "FLAGS",
-      description = "General C compilation flags used througout the entire C build process.",
-      category = "C Compilation"
-    },
-    XCFLAGS = {
-      value = "FLAGS",
-      description = [[
-        Flags used in addition to ``CFLAGS'' when building the ``no'' binary. If
-        your system provides tempnam(3), noweb's indexing will be more efficient
-        if you add -DTEMPNAM to XCFLAGS given to the C compiler.]],
-      category = "C Compilation"
-    },
-    LD = {
-      value = "LINKER_LOADER",
-      description = "A C linker.",
-      category = "C compilation"
-    },
-    LDFLAGS = {
-      value = "LINKER_FLAGS",
-      description = "Compilation flags for the linking stage, pased to ``ld''.",
-      category = "C Compilation"
-    },
-    LIBPROLOGUE = {
-      value = "LINKER_FLAGS_PREPENDED",
-      description = "Options and flags passed to LINKER_LOADER prior to LDFLAGS.",
-      category = "C Compilation"
-    },
-    LIBEPILOGUE = {
-      value = "LINKER_FLAGS_APPENDED",
-      description = "Options and flags passed to LINKER_LOADER prior to LDFLAGS.",
-      category = "C Compilation"
-    },
-    AR = {
-      value = "BUNDLER",
-      description = [[
-        What to call to build an object-code library.
-        An archiver or bundler tool used to produce object-code libraries from multiple object
-        files; whatever ``ar'' is on your system, or whatever produces object-code libraries
-        like .so or .dll.]],
-      category = "C Compilation"
-    },
-
-    -- System and C Library peculiarities
-    RANLIB = {
-      value = "ranlib",
-      allowed = {
-        { "ranlib", "A program for indexing object-code libraries." },
-        { "echo", "A fallback." },
-      },
-      description = "How to index an object-code library.",
-      category = "Utilities"
-    },
-    CIIMAXALIGN = {
-      value = "",
-      description = [[
-        The alignment (in bytes) of pointers returned by malloc; see
-        cii/install.html for more]],
-      category = "Utilities"
-    },
-    XINCLUDES = {
-      value = "",
-      description = "",
-      category = "Utilities"
-    },
-    POPEN = {
-      value = "",
-      description = "",
-      category = "Utilities"
-    },
-    POSIX = {
-      value = "",
-      description = "",
-      category = "Utilities"
-    },
-    STRERROR = {
-      value = "",
-      description = "",
-      category = "Utilities"
-    }
-  }
-
-  for option_flag_trigger, option_flag_trigger_table in pairs(opts) do
-    newoption {
-      trigger = option_flag_trigger,
-      value = option_flag_trigger_table.value,
-      description = option_flag_trigger_table.description,
-      allowed = option_flag_trigger_table.allowed,
-      default = option_flag_trigger_table.default,
-      category = option_flag_trigger_table.category
-    }
-  end
-#+end_src
-
-**** Perhaps use the descriptions in these strings instead
-
-#+begin_src lua
-  rows = {
-    "CC", "the name of an ANSI C compiler",
-    "CFLAGS", "general flags used througout the build",
-    "XCFLAGS", "flags used in addition to CFLAGS when building no",
-    "O", "the extension of object files produced by your compiler",
-    "LD", "what to call to build an executable binary",
-    "LDFLAGS", "general flags used to build an executable",
-    "LIBPROLOG", "anything you need to place before listing libraries",
-    "LIBEPILOG", "anything you need to place after listing libraries",
-    "E", "the extension of executable files produced by your linker",
-    "AR", "what to call to build an object-code library",
-    "A", "the extension of library files produced by your archiver",
-    "RMDIR", "How to recursively and quietly remove directories",
-    "RM", "How to quietly remove a set of files",
-    "CP", "How to copy a file",
-    "CPR", "How to recursively copy all files in a directory",
-    "RANLIB", "how to index an object-code library"
-  }
-#+end_src
-
-**** Linker PROLOGUE and EPILOGUE
-On Windows, the default flags for Noweb 3 were "/nologo /Fe: /link".
-
-- =/link= :: Passes the specified option to LINK.
-- =/Fe:= :: Specifies a name and a directory for the .exe file or DLL created by the compiler.
-- =/nologo= :: Suppresses display of sign-on banner.
-
-On Linux the defaults were:
-
-- gcc :: The GNU Compiler Collection command name.
-- LFLAGS :: Linker flags, which will be betwixt LIBPROLOG and LIBEPILOG.
-- LIBPROLOG :: Things to prepend to the list of linker arguments.
-- LIBEPILOG :: Things to append to the list of linker arguments, like =-lm=.
-
-[[https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html][=-nolibc= has the following description]]:
+* Noweb 3 uses a customized version of Lua 2.5.1 :note:readme:
+The introductory content of the Noweb 3 README describes what Noweb 3 is, in
+brief, and why it uses Lua but also has some cautionary content about the
+futility of maintaining Noweb 3.
 
 #+begin_quote
-Do not use the C library or system libraries tightly coupled with it when
-linking. Still link with the startup files, libgcc or toolchain provided
-language support libraries such as libgnat, libgfortran or libstdc++ unless
-options preventing their inclusion are used as well. This typically removes
-=-lc= from the link command line, as well as system libraries that normally go
-with it and become meaningless when absence of a C library is assumed, for
-example =-lpthread= or =-lm= in some configurations. This is intended for
-bare-board targets when there is indeed no C library available.
+This is Noweb 3.  Noweb 3 is a reimplementation of Noweb using
+a customized version of Lua 2.5.  Noweb 3 was conceived and
+implemented in 1996 to solve two problems:
+
+  - Noweb 2 was hard to install.
+  - Without Icon, Noweb 2 can slow and hard to extend.
+
+Advances in software and hardware have made these problems irrelevant:
+Linux distributions and OSX ports have shifted installation costs from
+the end user to the distribution maintainers, and those same
+distributions have made it easy to build on fast Icon code instead of
+slow Awk code.  Noweb 3 retains some value; it is more flexible and
+easier to extend than Noweb 2, but in Fall 2015, as these words are
+being written, maintaining Noweb 3 makes no sense.  In a just world,
+Noweb 3 would be completely rewritten using Lua 5.  But that won't
+happen.
+
+I have used Noweb 3 in production for some years, but I continue to
+call this distribution "alpha quality."  Alpha versions are numbered
+by date; for example, the first version to tangle and weave itself was
+alpha980616.  This alpha version is made available from github
+(nrnrnr/noweb3) so that those who wish to play with Noweb 3 can do so.
 #+end_quote
 
-** [tools, vendored, Lua, C, Rammel] Build process
-There are several actions that must be taken. These aren't analogous to the Premake5 conception of actions.
-
-First, a bootstrapped (past-tense) version of the Noweb 2 C sources are built,
-as these are used to bootstrap Rammel (a Noweb 3-heritage program). Second,
-vendored shared libraries are built (/[[https://drh.github.io/cii/][Dave Hansen]]'s/ CII and /[[https://www.puc-rio.br/][PUC-Rio]]'s/ Lua
-5.4). Third, the Rammel sources are tangled and built using the vendored
-libraries.
-
-*** TODO Bootstrapping Rammel's build
-Bootstrap Rammel by building then installing its /tools/ in the tools
-subdirectory of the Rammel libexec directory. The bootstrapped tools are used
-during compilation to build Rammel. The details of how these /tools' sources/
-are built follows.
-
-Rammel requires Noweb 2 for bootstrapping its own sources, as did Noweb 3. The =targetdir=
-function in Premake sets the installation target directory, and it is set in the
-top-level premake script.
-
-#+name: tools
-#+begin_src lua
-  workspace "Rammel"
-    configurations { "Release" }
-    location "build"
-
-  filter { "system:linux", "action:gmake" }
-    buildoptions { "-std=c99", "-pedantic", "-Wall" }
-    -- linkoptions { }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  project "l2htodo"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/l2htodo"
-    files {
-      "l2htodo.c"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  -- /home/bryce/src/rammel/src/tools/build/tools/markup/bin/Debug
-  project "markup"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/markup"
-    files {
-      "markmain.*",
-      "strsave.*",
-      "markup.*",
-      "errors.*",
-      "getline.*",
-      "columns.*"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  project "nt"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/nt"
-    files {
-      "notangle.*",
-      "getlines.*",
-      "match.*",
-      "modules.*",
-      "modtrees.*",
-      "strsave.*",
-      "main.*",-- requires a patch, to make main return int explicitly
-      "errors.*",
-      "columns.*"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  project "tie"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/tie"
-    files {
-      "tie.c"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  -- Requires a patch such that it includes <string.h>
-  project "nocond"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/nocond"
-    files {
-      "nocond.c"
-    }
-#+end_src
-
-**** TODO Debug builds
-I should configure the debug build with extra logging and test if the tools still meet the requirements of Rammel.
-
-**** TODO CFLAGS and LFLAGS
-**** TODO Installation directory
-**** DONE Patch nt.[ch]#main to return an int explicitly
-CLOSED: [2026-01-06 Tue 00:27]
-**** TODO Install the tools to LIB3/tools
-
-*** TODO MAKE Lua 2.5+nw and install it in $(LIB3)/lua-2.5 according to LuaMakefile
-/Lua 2.5+nw/ is Lua 2.5 with changes supporting the implementation of Noweb 3, what Rammel is derived from.
-
-See [[*=diff= of Norman's lua-2.5+nw and Lua 2.5.1][=diff= of Norman's lua-2.5+nw and Lua 2.5.1]].
-
-#+begin_src lua
-  workspace "Rammel"
-  configurations { "Release" }
-  language "C"
-  project "Lua 2.5+nw"
-  kind "SharedLib"
-  files {
-    
-  }
-#+end_src
-
-*** TODO Make Lua 5.4.8
-*** TODO CII
-Hansen's CII already includes an NT-compatible makefile, so rather than
-expending effort to convert the existing makefiles for Windows (NT) and for UNIX
-into a Premake lua_script I will just call the respective make file, and require
-make for Rammel to build.
-
-#+begin_src lua :noweb-ref compile CII as a shared object
-  workspace { "CII" }
-    project "CII"
-      kind "Makefile" -- See: https://premake.github.io/docs/Makefile-Projects.
-      location "vendor/c-interfaces-and-implementations"
-      system { "Windows", "Linux" }
-
-      buildcommands {
-        "make %{cfg.buildcfg}"
-      }
-
-      rebuildcommands {
-        "make clean %{cfg.buildcfg}",
-        "make %{cfg.buildcfg}"
-      }
-
-      cleancommands {
-        "make clean %{cfg.buildcfg}"
-      }
-#+end_src
-
-*** TODO Change to the C directory and MAKE:
-The sources in the C directory are made quite simply.
-
-  #+begin_src sh
-    make -C c "NOTANGLE=more" \
-         "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" \
-         "CPIF=>" \
-         "TOOLS=$(LIB3)/tools" \
-         "LUA=../lua-2.5" \
-         "LUALIB=$(LIB3)/lua-2.5" \
-         "OUTPUT=$(LIB3)/c"
-  #+end_src
-
-*** TODO Tangle the Lua sources and make minor modifications thereto
-The Lua sources of Rammel are Lua scripts tangled from a single web.
-
-Within the original makefile the default target---=all=---will run.
-
-#+begin_src sh
-  make -C lua "NOTANGLE=more" \
-    "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)/tools/markup | $(LIB3)/tools/nt" \
-    "CPIF=>" \
-    "OUTPUT=$(LIB3)/lua"
-#+end_src
-
-The original Makefile for the Lua directory is quoted here...
-
-#+begin_src makefile
-  include ../nwconfig
-
-  CONFIG=	$(OUTPUT)$(P)pipes.cfg \
-  	$(OUTPUT)$(P)sys.cfg \
-  	$(OUTPUT)$(P)noweb.cfg \
-  	$(OUTPUT)$(P)util.cfg \
-  	$(OUTPUT)$(P)list.nws \
-  	$(OUTPUT)$(P)set.nws
-
-  FILTERS=	$(OUTPUT)$(P)cat.nws \
-  		$(OUTPUT)$(P)stripconds.nws \
-  		$(OUTPUT)$(P)xchunks.nws \
-  		$(OUTPUT)$(P)lines.nws
-
-  STAGES=	$(OUTPUT)$(P)totex.nws \
-  	$(OUTPUT)$(P)tohtml.nws \
-  	$(OUTPUT)$(P)noidx.nws \
-  	$(OUTPUT)$(P)elide.nws \
-  	$(OUTPUT)$(P)unmarkup.nws \
-  	$(FILTERS)
-
-  SCRIPTS=	$(OUTPUT)$(P)tangle \
-  		$(OUTPUT)$(P)weave
-
-  all: $(CONFIG) $(STAGES) $(SCRIPTS)
-
-  test: $(CONFIG) $(STAGES) $(SCRIPTS)
-  	@echo 'write("Scripts load from .\n")' | NWPATH=. no
-  	@echo 'argv = {"-internaldefaults", "-n", "-html", "/dev/null"}; do_nwfile("weave.nws"); write("Null weave OK.\n")' | NWPATH=. no
-  	@echo 'argv = {"-internal", "test.nw"}; do_nwfile("tangle.nws"); write("Null tangle OK.\n")' | NWPATH=. no
-
-  htmltest: $(CONFIG) $(STAGES) $(SCRIPTS)
-  	@echo 'testfile("/home/nr/www/noweb/index.html")' | NWPATH=. no
-
-  clean:
-
-  clobber: clean
-  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS) 2>$(NUL)
-
-  install: $(SCRIPTS) $(CONFIG) $(STAGES)
-  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i; done
-  	for i in $(SCRIPTS); do cp $$i $(LIB3)/`basename $$i .nws`; done
-
-  $(OUTPUT)$(P)pipes.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rpipes.cfg	$(CPIF) $@
-  $(OUTPUT)$(P)sys.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rsys.cfg		$(CPIF) $@
-  $(OUTPUT)$(P)noweb.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rnoweb.cfg	$(CPIF) $@
-  $(OUTPUT)$(P)util.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rutil.cfg	$(CPIF) $@
-  $(OUTPUT)$(P)list.nws:		list.nw;	$(NOTANGLE) list.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)set.nws:		set.nw;		$(NOTANGLE) set.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)totex.nws:		totex.nw;	$(NOTANGLE) totex.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)tohtml.nws:	tohtml.nw;	$(NOTANGLE) tohtml.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)noidx.nws:		noidx.nw;	$(NOTANGLE) noidx.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)elide.nws:		elide.nw;	$(NOTANGLE) elide.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)unmarkup.nws:	unmarkup.nw;	$(NOTANGLE) unmarkup.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)cat.nws:		cat.nw;		$(NOTANGLE) cat.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)stripconds.nws:	stripconds.nw;	$(NOTANGLE) stripconds.nw	$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)xchunks.nws:	xchunks.nw;	$(NOTANGLE) xchunks.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)lines.nws:		lines.nw;	$(NOTANGLE) lines.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)tangle:		tangle.nw;	$(NOTANGLE) tangle.nw		$(TANGLEOPTS) $(CPIF) $@
-  $(OUTPUT)$(P)weave:		weave.nw;	$(NOTANGLE) weave.nw		$(TANGLEOPTS) $(CPIF) $@
-
-  ################################################################
-  #
-
-  noidx.tex: noidx.nw
-  	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
-#+end_src
-
-Everything that didn't use a root used the default root of ~<<*>>=~.
-
-#+begin_src lua :noweb-ref src/lua.premake
-  local notangle = "$(NOTANGLE)"--originally set to "more"
-  local notangle_options = "$(TANGLEOPTS)"--originally set to ""
-  local cpif = "$(CPIF)"--originally set to ">", the shell output-redirection operator
-  local function tangle(notangle, notangle_options, cpif, target, root) do
-    if root then
-      local cpif_root = string.format("-R%s %s %s", root, cpif, root)
-    elseif
-      local cpif_root = string.format("%s %s", cpif, root)
-    end
-    os.executef("%s lua.nw %s %s", notangle, notangle_options, cpif_root, target)
-  end
-  for target in { "pipes.cfg", "sys.cfg", "noweb.cfg", "util.cfg" } do
-    tangle(notangle, notangle_opts, cpif, target, target)
-  end
-  local scripts = {
-    "list.nws",
-    "set.nws",
-    "totex.nws",
-    "tohtml.nws",
-    "noidx.nws",
-    "elide.nws",
-    "unmarkup.nws",
-    "cat.nws",-- apparently not installed anywhere
-    "stripconds.nws",
-    "xchunks.nws",
-    "lines.nws",
-    "tangle",
-    "weave"
-  }
-  for lua_script in scripts do
-    tangle(notangle, notangle_opts, cpif, lua_script)
-  end
-
-  local config = { "pipes.cfg", "sys.cfg", "noweb.cfg", "util.cfg", "list.nws", "set.nws" }
-
-  -- FIXME: The filters cat, stripconds, xchunks, and lines are missing.
-  -- TODO: CONFIG, FILTERS, STAGES, AND SCRIPTS is confusing and I need to make these simpler. The original was much easier to understand: everything except for tangle and weave is stream-edited.
-  local configurations_and_stages = {
-    "pipes.cfg",
-    "sys.cfg",
-    "noweb.cfg",
-    "util.cfg",
-    "list.nws",
-    "set.nws",
-    "totex.nws",
-    "tohtml.nws",
-    "noidx.nws",
-    "elide.nws",
-    "unmarkup.nws"
-  }
-  -- FIXME: this is not perfect syntax nor semantics.
-  for configuration_or_stage in configurations_and_stages do
-    local file = io.open("LIB3/"..configuration_or_stage)
-    for line in lines(configuration_or_stage) do
-      local edited_line = string.gsub(line, "|LIBDIR|", "$(LIB2)")
-      file:write(edited_line)
-    end
-  end
-
-  for script in { "tangle", "weave" } do
-    os.executef("install %s %s/%s", script, lib3, file.basename(script, ".nws"))
-  end
-#+end_src
-
-To install this stuff, change "|LIBDIR|" in all the CONFIG and STAGES files to
-$(LIB2), globally, emitting output to LIB3, and copy/install the scripts to LIB3
-with ".nws" removed.
-
-#+begin_src makefile
-  install: $(SCRIPTS) $(CONFIG) $(STAGES)
-  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i; done
-  	for i in $(SCRIPTS); do cp $$i $(LIB3)/`basename $$i .nws`; done
-#+end_src
-
-*** Everything else
-Convert everything herein to Premake projects within a Workspace and create actions and targets.
-
-In general, this contains just:
-
-- boostrap (in LIB3/)
-- ciilib (in LIB3/)
-- lualib (in LIB3/)
-- all
-- tests
-
-#+begin_src makefile
-  # TODO: convert all of the following into Premake configuration.
-  # Stop editing.  No user-serviceable parts below.
-
-  all: code scripts styles
-
-  bootstrap:
-  	-mkdir $(LIB3)$(P)tools 2>$(NUL)
-  	cd tools && $(MK) "OUTPUT=$(LIB3)$(P)tools" && cd ..
-
-  ciilib:
-  	-mkdir $(LIB3)$(P)cii 2>$(NUL)
-  	cd cii && $(MK) "OUTPUT=$(LIB3)$(P)cii" && cd ..
-
-  lualib:
-  	-mkdir $(LIB3)$(P)lua-2.5 2>$(NUL)
-  	cd lua-2.5 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-2.5" && cd ..
-
-  lualib3:
-  	-mkdir $(LIB3)$(P)lua-3.0 2>$(NUL)
-  	cd lua-3.0 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-3.0" && cd ..
-
-  code: bootstrap ciilib lualib
-  	-mkdir $(LIB3)$(P)c 2>$(NUL)
-  	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
-
-  scripts: bootstrap
-  	-mkdir $(LIB3)$(P)lua 2>$(NUL)
-  	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-
-  styles: bootstrap
-  	-mkdir $(LIB3)$(P)tex 2>$(NUL)
-  	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-
-  careful:
-  	$(MK) clobber
-  	$(MK) all clean
-  	-$(RMDIR) $(LIB3)$(P)first 2>$(NUL)
-  	mkdir $(LIB3)$(P)first
-  	mkdir $(LIB3)$(P)first$(P)c
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)first$(P)c
-  	mkdir $(LIB3)$(P)first$(P)lua
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)first$(P)lua
-  	mkdir $(LIB3)$(P)first$(P)tex
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)first$(P)tex
-  	$(MK) clobber
-  	$(MK) bootstrap
-  	$(MK) ciilib
-  	$(MK) lualib
-  	-mkdir $(LIB3)$(P)c 2>$(NUL)
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)first$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
-  	-mkdir $(LIB3)$(P)lua 2>$(NUL)
-  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=$(LIB3)$(P)first$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-  	-mkdir $(LIB3)$(P)tex 2>$(NUL)
-  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=$(LIB3)$(P)first$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-  	echo At this point we are attempting to build the literate version.
-  	echo It may fail if you have not previously installed noweb.sty.
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	-$(RMDIR) $(LIB3)$(P)first
-  	$(MK) all clean
-
-  transfer:
-  #	make 2 from bootstrap
-  	$(MK) clobber
-  	$(MK) all
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	mkdir $(LIB3)$(P)2b
-  	mkdir $(LIB3)$(P)2b$(P)c
-  	mkdir $(LIB3)$(P)2b$(P)lua
-  	mkdir $(LIB3)$(P)2b$(P)tex
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)2b$(P)c
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)2b$(P)lua
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)2b$(P)tex
-  	$(MK) clean
-  #	make 3 from bootstrap
-  	$(MK) clobber
-  	$(MK) bootstrap
-  	$(MK) ciilib
-  	$(MK) lualib3
-  	mkdir $(LIB3)$(P)c
-  	mkdir $(LIB3)$(P)lua
-  	mkdir $(LIB3)$(P)tex
-  	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
-  	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-  	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	mkdir $(LIB3)$(P)3b
-  	mkdir $(LIB3)$(P)3b$(P)c
-  	mkdir $(LIB3)$(P)3b$(P)lua
-  	mkdir $(LIB3)$(P)3b$(P)tex
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)3b$(P)c
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)3b$(P)lua
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)3b$(P)tex
-  	$(MK) clean
-  #	make 2 from 2
-  	$(MK) clobber
-  	$(MK) bootstrap
-  	$(MK) ciilib
-  	$(MK) lualib
-  	mkdir $(LIB3)$(P)c
-  	mkdir $(LIB3)$(P)lua
-  	mkdir $(LIB3)$(P)tex
-  	mkdir $(LIB3)$(P)22
-  	mkdir $(LIB3)$(P)22$(P)c
-  	mkdir $(LIB3)$(P)22$(P)lua
-  	mkdir $(LIB3)$(P)22$(P)tex
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
-  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=$(LIB3)$(P)2b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)22$(P)c
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)22$(P)lua
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)22$(P)tex
-  	$(MK) clean
-  #	make 3 from 2
-  	$(MK) clobber
-  	$(MK) bootstrap
-  	$(MK) ciilib
-  	$(MK) lualib3
-  	mkdir $(LIB3)$(P)c
-  	mkdir $(LIB3)$(P)lua
-  	mkdir $(LIB3)$(P)tex
-  	mkdir $(LIB3)$(P)32
-  	mkdir $(LIB3)$(P)32$(P)c
-  	mkdir $(LIB3)$(P)32$(P)lua
-  	mkdir $(LIB3)$(P)32$(P)tex
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
-  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=$(LIB3)$(P)2b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)32$(P)c
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)32$(P)lua
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)32$(P)tex
-  	$(MK) clean
-  #	make 2 from 3
-  	$(MK) clobber
-  	$(MK) bootstrap
-  	$(MK) ciilib
-  	$(MK) lualib
-  	mkdir $(LIB3)$(P)c
-  	mkdir $(LIB3)$(P)lua
-  	mkdir $(LIB3)$(P)tex
-  	mkdir $(LIB3)$(P)23
-  	mkdir $(LIB3)$(P)23$(P)c
-  	mkdir $(LIB3)$(P)23$(P)lua
-  	mkdir $(LIB3)$(P)23$(P)tex
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
-  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=$(LIB3)$(P)3b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)23$(P)c
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)23$(P)lua
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)23$(P)tex
-  	$(MK) clean
-  #	make 3 from 3
-  	$(MK) clobber
-  	$(MK) bootstrap
-  	$(MK) ciilib
-  	$(MK) lualib3
-  	mkdir $(LIB3)$(P)c
-  	mkdir $(LIB3)$(P)lua
-  	mkdir $(LIB3)$(P)tex
-  	mkdir $(LIB3)$(P)33
-  	mkdir $(LIB3)$(P)33$(P)c
-  	mkdir $(LIB3)$(P)33$(P)lua
-  	mkdir $(LIB3)$(P)33$(P)tex
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
-  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
-  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=$(LIB3)$(P)3b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
-  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)33$(P)c
-  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)33$(P)lua
-  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)33$(P)tex
-  	$(MK) clean
-  	$(MK) checkclean
-  	echo Let's see how different it is.
-  	pause
-  	$(MK) checkdifferent
-  	echo Let's see how similar it is.
-  	pause
-  	$(MK) checksame
-  	pause
-
-  checkdifferent:
-  	windiff $(LIB3)$(P)2b $(LIB3)$(P)3b
-  	windiff $(LIB3)$(P)2b $(LIB3)$(P)32
-  	windiff $(LIB3)$(P)2b $(LIB3)$(P)33
-  	windiff $(LIB3)$(P)22 $(LIB3)$(P)3b
-  	windiff $(LIB3)$(P)22 $(LIB3)$(P)32
-  	windiff $(LIB3)$(P)22 $(LIB3)$(P)33
-  	windiff $(LIB3)$(P)23 $(LIB3)$(P)3b
-  	windiff $(LIB3)$(P)23 $(LIB3)$(P)32
-  	windiff $(LIB3)$(P)23 $(LIB3)$(P)33
-
-  checksame:
-  	windiff $(LIB3)$(P)2b $(LIB3)$(P)22
-  	windiff $(LIB3)$(P)22 $(LIB3)$(P)23
-  	windiff $(LIB3)$(P)3b $(LIB3)$(P)32
-  	windiff $(LIB3)$(P)32 $(LIB3)$(P)33
-
-  pdf: install
-  	-mkdir $(LIB3)$(P)c 2>$(NUL)
-  	cd c && $(MK) "OUTPUT=$(LIB3)$(P)c" doc && cd ..
-
-  install: install-code install-scripts install-styles
-
-  install-code: code
-  	$(CP) $(LIB3)$(P)c$(P)no$(E) $(BINDIR)
-  	$(CP) $(LIB3)$(P)c$(P)nwmtime$(E) $(BINDIR)
-
-  install-scripts: scripts
-  	$(CP) $(LIB3)$(P)lua$(P)* $(BINDIR)
-
-  install-styles: styles
-  	$(CP) $(LIB3)$(P)tex$(P)noweb.sty $(TEXINPUTS)$(P)latex$(P)misc$(P)noweb.sty
-  	$(CP) $(LIB3)$(P)tex$(P)nwmac.tex $(TEXINPUTS)$(P)generic$(P)misc$(P)nwmac.tex
-#+end_src
-
-**** TODO Reimplement the tests (the =transfers= target)
-An informal test framework was created by David, which examined the differences
-between pairs of compilations: e.g. compiling Noweb 3 with Lua 3, or with Lua 2.
-
-*** TODO Rendering the Literate Program, or User Manual
-- Set the LaTeX renderer (if any).
-- Configure a local markdown renderer or bundle libre rendering JavaScript in
-  HTML exports of Markdown documented webs.
-- Default should be HTML rendering because virtually all systems have a capable
-  web browser, while fewer systems have a sufficiently configured LaTeX
-  installation.
-
-#+begin_src sh
-  make "NOTANGLE=more" \
-       "TANGLEOPTS= | $(LIB3)/tools/markup | $(LIB3)/tools/nt" \
-       "CPIF=>" \
-       "OUTPUT=$(LIB3)/tex"
-#+end_src
-
-**** Rendering the literate document sources
-#+begin_src lua
-  local LaTeX="pdflatex"
-#+end_src
-
-Norman's Makefile had a ~doc~ target; evidently it took three renderings to
-fully process cross-references and labels.
-
-#+begin_src makefile
-  doc:	$(OUTPUT)$(P)doc.tex $(OUTPUT)$(P)allcode.tex
-  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-  pdflatex -output-directory=$(OUTPUT) doc.tex
-#+end_src
-
-**** Hacker's Guide
-#+begin_src makefile
-  noidx.tex: noidx.nw
-  	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
-#+end_src
-
-** TODO src/rammel/src/tools/premake5.lua
-
-#+begin_src lua
-  workspace "Rammel"
-    configurations { "Debug", "Release" }
-    location "build"
-    -- result, errorcode = os.outputof "rpm --eval '%{_libexecdir}'"
-    -- targetdir(result)
-
-  filter { "system:linux", "action:gmake" }
-    buildoptions { "-std=c99", "-pedantic", "-Wall" }
-    -- linkoptions { }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  project "l2htodo"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/l2htodo"
-    files {
-      "l2htodo.c"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  -- /home/bryce/src/rammel/src/tools/build/tools/markup/bin/Debug
-  project "markup"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/markup"
-    files {
-      "markmain.*",
-      "strsave.*",
-      "markup.*",
-      "errors.*",
-      "getline.*",
-      "columns.*"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  project "nt"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/nt"
-    files {
-      "notangle.*",
-      "getlines.*",
-      "match.*",
-      "modules.*",
-      "modtrees.*",
-      "strsave.*",
-      "main.*",-- requires a patch, to make main return int explicitly
-      "errors.*",
-      "columns.*"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  project "tie"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/tie"
-    files {
-      "tie.c"
-    }
-
-  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
-  -- Requires a patch such that it includes <string.h>
-  project "nocond"
-    kind "ConsoleApp"
-    language "C"
-    location "build/tools/nocond"
-    files {
-      "nocond.c"
-    }
-#+end_src
-
-** TODO src/c/README.org
-*** (Unused) Icon program
-- buildswitch.nw :: An icon implementation of "buildswitch".
-
-*** Individual Documents
-- doc.nw :: 
-- overview.nw :: A document giving an overview of work completed to enhance Noweb 2 leading to the third major version of Noweb.
-- hackers :: 
-
-*** C noweb webs
-- cargs.nw ::
-- columns.nw ::
-- cpif.nw ::
-
-
-**** Chapters in a larger document
-- env-lua.nw :: Lua registration of the C functions =getenv= and =putenv=.
-- errors.nw ::
-- fakepretty.nw ::
-- finduses.nw ::
-- fromascii ::
-- fu-run :: the =main= program for /finduses/.
-- getline ::
-- ipipe ::
-- ipipe-lua ::
-- lua-help ::
-- lua-main ::
-- main ::
-- markparse ::
-- markup ::
-- markup-run ::
-- match ::
-- misc-lua ::
-- mnt ::
-- modtrees ::
-- modules ::
-- mpipe ::
-- mpipe-lua ::
-- mpipe-new ::
-- notangle ::
-- noweb-lua ::
-- nt-run ::
-- nullsink ::
-- nwbuffer ::
-- nwbuffer-lua ::
-- nwmtime ::
-- nwprocess ::
-- nwtime ::
-- precompiled ::
-- pretty ::
-- recognize ::
-- stages ::
-- strsave ::
-- sys ::
-- toascii ::
-- util ::
-- xpipe ::
-- xpipe-lua :: 
-
-There's also a version of xpipe in the bugs/ subdirectory.
-
-*** Odd LaTeX files
-- luatab.nw :: Contains only a documentation chunk, and uses the ~[[...]]~ syntax.
-
-*** Confusing files
-nocond
-
-This is a sed script which should help to build Noweb 3, according to Ramsey.
-
-*** /spawn/, vendored software converted to Noweb
-
-*** DONE Notes on the src/c directory Makefile
-CLOSED: [2026-01-05 Mon 04:34]
-The C directory Makefile is organized as follows:
-1. Include nwconfig.
-2. Set =CII= and =INCS=, including /C Interfaces and Implementations/ and /Lua/.
-   1. Note that after installation of /Noweb 3/, /Noweb 3/ will be used to make "doc" for the semi-literate version of the source code.
-   2. ~"-I../../vendor/c-interfaces-and-implementations/include~"
-   3. ~"-I../../vendor/lua-5.4.8"~
-      1. During the /Lua 2.5/ era an "include" subdirectory was included, not the top level.
-         TODO understand how to include modern Lua.
-3. =NOOBJS= is a list of all object files required for the =no= target. See the ~NOOBJS~ list.
-4. =NWMTIMEOBJS= is a list of all object files required for the =nwmtime= target. See the ~NWMTIMEOBJS~ list.
-5. =FILES= is a list of files...
-6. C code is distributed alongside the noweb files, which helps with
-   bootstrapping. SRCS is a list of C code (.c and .h) which should be
-   distributed; whatever .c and .h files are generated should be members of the
-   list. A new list, =DIST= will track these files.
-7. =NAME= is unused.
-8. A metarule is used to control how all =.c.o= objects are compiled, so a new rule isn't needed for every file.
-#+begin_src makefile :noweb-ref metarule for compiling C objects
-  # metarule so you don't need a new rule for each object file
-  .c$(O):;	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS)$@ $*.c
-#+end_src
-
-There are no prerequisites for this rule, and the recipe is short so it begins
-on the same line. Therefore the syntax of this metarule is ~targets : prerequisites ; recipe~,
-with empty prerequisites.
-
-Automatic variables:
--$@ the name of the target
--$* [[https://www.gnu.org/software/make/manual/html_node/Suffix-Rules.html][an old-fashioned suffix-rule]]
-
-**** The =nwmtime= target
-***** Prerequisites are NWMTIMEOBJS
-***** =$(LD) $(LFLAGS)$@ $(NWMTIMEOBJS)=
-This rule says to link the named objects together and output the executable =nwmtime=.
-
-#+begin_src bash
-  ld -onwmtime columns.o errors.o getline.o nwmtime.o
-#+end_src
-
-**** The =no= target
-***** Prerequisites
-#+begin_src bash
-  $(NOOBJS) $(LIB3)/cii/memchk.o $(LIB3)/cii/libcii.a $(LUALIB)/liblua.a $(LUALIB)/liblualib.a
-#+end_src
-
-***** Recipe
-The expansion of various shit is like this.
-
-#+begin_src bash
-  ld -ono $(NOOBJS) $(LIBPROLOG) $(LIB3)/cii/libcii. $(LUALIB)/liblua. $(LUALIB)/liblualib. $(LIBEPILOG)
-#+end_src
-
-LIBPROLOG is nul, and LIBEPILOG is "-lm".
-
-**** The =doc= target
-***** Prerequisites, doc.tex and allcode.tex
-- doc.tex is a copy of doc.nw
-- allcode.tex has a complex recipe
-It depends on =$(FILES)=.
-
-#+begin_src bash
-  no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > allcode.tex
-#+end_src
-***** Recipe
-=doc.tex= includes =allcode.tex= using the =input= macro.
-
-#+begin_src bash
-  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-  pdflatex -output-directory=$(OUTPUT) doc.tex
-#+end_src
-**** =DIST=
-DIST is a new list of C sources (.c and .h files) that must be distributed alongside the webs.
-
-- =columns.c=
-- =columns.h=
-- =cpif.c=
-- =cpif.h=
-- =env-lua.c=
-- =env-lua.h=
-- =errors.c=
-- =errors.h=
-- =finduses.c=
-- =fromascii.c=
-- =fromascii.h=
-- =getline.c=
-- =getline.h=
-- =ipipe-lua.c=
-- =ipipe-lua.h=
-- =ipipe.c=
-- =ipipe.h=
-- =lua-help.c=
-- =lua-help.h=
-- =lua-main.c=
-- =lua-main.h=
-- =main.c=
-- =markparse.c=
-- =markparse.h=
-- =markup.c=
-- =markup.h=
-- =match.c=
-- =match.h=
-- =misc-lua.c=
-- =misc-lua.h=
-- =modtrees.c=
-- =modtrees.h=
-- =modules.c=
-- =modules.h=
-- =mpipe-lua.c=
-- =mpipe-lua.h=
-- =mpipe.c=
-- =mpipe.h=
-- =notangle.c=
-- =notangle.h=
-- =noweb-lua.c=
-- =noweb-lua.h=
-- =nwbuffer-lua.c=
-- =nwbuffer.c=
-- =nwbuffer.h=
-- =nwmtime.c=
-- =nwprocess.c=
-- =nwprocess.h=
-- =nwtime.c=
-- =nwtime.h=
-- =precompiled.h=
-- =recognize.c=
-- =recognize.h=
-- =stages.c=
-- =stages.h=
-- =strsave.c=
-- =strsave.h=
-- =sys.c=
-- =sys.h=
-- =util.c=
-- =util.h=
-- =xpipe-lua.c=
-- =xpipe-lua.h=
-- =xpipe.c=
-- =xpipe.h=
-
-**** =FILES=
-#+begin_src lua
-  files {
-    "columns.nw",
-    "cpif.nw",
-    "errors.nw",
-    "finduses.nw",
-    "getline.nw",
-    "ipipe.nw",
-    "ipipe-lua.nw",
-    "lua-main.nw",
-    "main.nw",
-    "markparse.nw",
-    "markup.nw",
-    "match.nw",
-    "modtrees.nw",
-    "modules.nw",
-    "mpipe.nw",
-    "mpipe-lua.nw",
-    "notangle.nw",
-    "nwbuffer.nw",
-    "nwbuffer-lua.nw",
-    "nwmtime.nw",
-    "nwprocess.nw",
-    "nwtime.nw",
-    "recognize.nw",
-    "strsave.nw",
-    "xpipe.nw",
-    "xpipe-lua.nw"
-  }
-#+end_src
-
-**** =NOOBJS=
-- columns
-- cpif
-- env-lua
-- errors
-- finduses
-- fromascii
-- getline
-- ipipe
-- ipipe-lua
-- lua-help
-- lua-main
-- main
-- markparse
-- markup
-- misc-lua
-- modtrees
-- modules
-- mpipe
-- mpipe-lua
-- notangle
-- noweb-lua
-- nwbuffer
-- nwbuffer-lua
-- nwprocess
-- nwtime
-- recognize
-- stages
-- strsave
-- sys
-- util
-- xpipe
-- xpipe-lua
-
-**** =NWMTIMEOBJS=
-- columns
-- errors
-- getline
-- nwmtime
-
-** TODO src/c/premake5.lua
-
-This Premake script is quite complete, if not finished. Test it a few times.
-
-#+begin_src lua
-  print "...running the Premake5 Lua script in the \"c\" subdirectory..."
-
-  workspace "Rammel"
-      configurations { "Debug", "Release" }
-      kind "SharedLib"
-      language "C"
-      targetdir "bin/%{cfg.buildcfg}"
-      location "build"
-
-  filter "system:Windows"
-      system "windows"
-
-  filter "system:linux"
-      system "linux"
-
-  -- sub-projects
-  -- tangle_ch_file("example") :: notangle example.nw > example.c# tangle the default * module.
-  function tangle_ch_file (name, root, of, mode, tangleopts)
-    if not root and not of then
-      of = string.format("%s.c", name)
-    end
-    if not of then
-      of = string.format("%s.h", name)
-    end
-    if root then
-      root = string.format("-R\"%s\"", root)
-    else
-      root = ""
-    end
-    if not mode then
-      mode = ">"
-    else-- I only ever use "a+" to indicate that I intend to append.
-      mode = ">>"
-    end
-
-    if not tangleopts then tangleopts = "" end
-
-    printf([[Attempting to run the following:
-      notangle %s.nw %s -L"#line %%L "\"%s.nw"\"%%N" %s > %s %s %s
-      ]],
-      name, tangleopts, name, root, of, mode, of)
-    os.executef([[notangle %s.nw %s -L"#line %%L "\"%s.nw"\"%%N" %s > %s %s %s]],
-      name, tangleopts, name, root, of, mode, of)
-  end
-
-  for index, header in pairs({
-      "cargs",       "columns",
-                     "env-lua",
-      "errors",      "fromascii",
-      "getline",     "ipipe",
-      "ipipe-lua",   "lua-help",
-      "lua-main",    "markparse",
-      "markup",      "match",
-      "misc-lua",    "modtrees",
-      "modules",     "mpipe",
-      "mpipe-lua",   "notangle",
-      "noweb-lua",   "nwbuffer",
-      "nwprocess",   "nwtime",
-      "precompiled", "recognize",
-      "stages",      "strsave",
-      "sys",         "util",
-      "xpipe",       "xpipe-lua"
-  }) do tangle_ch_file(header, "header") end
-
-  for index, source in pairs({
-      "columns",   "cpif",
-      "errors",    "env-lua",
-      "finduses",  "fromascii",
-      "getline",   "ipipe",
-      "ipipe-lua", "lua-help",
-      "lua-main",  "main",
-      "markup",    "markparse",
-      "misc-lua",  "modtrees",
-      "modules",   "mpipe",
-      "mpipe-lua", "notangle",
-      "noweb-lua", "nwbuffer",
-      "nwprocess", "nwmtime",
-      "nwtime",    "recognize",
-      "stages",    "strsave",
-      "sys",       "util",
-      "xpipe",     "xpipe-lua"
-  }) do tangle_ch_file(source) end
-
-  project "columns"
-      files { "cargs.h", "columns.c", "columns.h" }
-  project "cpif"
-      files { "cpif.c", "errors.h", "strsave.h" }
-  project "env-lua"
-      files { "env-lua.c", "env-lua.h", "lua-help.h" }
-  project "errors"
-      files { "errors.c", "errors.h" }
-  project "finduses"
-      files { "errors.h", "finduses.c", "getline.h", "match.h", "nwbuffer.h", "recognize.h" }
-  project "fromascii"
-      files { "errors.h", "fromascii.c", "fromascii.h", "getline.h", "nwbuffer.h" }
-  project "getline"
-      files { "columns.h", "errors.h", "getline.c", "getline.h" }
-  project "ipipe"
-      files { "ipipe.c", "ipipe.h", "nwbuffer.h", "nwtime.h" }
-  project "ipipe-lua"
-      files { "ipipe-lua.c", "ipipe-lua.h" }
-  project "lua-help"
-      files { "lua-help.c", "lua-help.h" }
-  project "lua-main"
-      files { "env-lua.h", "ipipe-lua.h", "lua-main.c", "lua-main.h", "misc-lua.h", "mpipe-lua.h", "noweb-lua.h", "stages.h", "util.h", "xpipe-lua.h" }
-  project "main"
-      files { "cargs.h", "columns.h", "cpif.h", "errors.h", "main.c", "modtrees.h", "modules.h", "notangle.h", "nwbuffer.h" }
-  project "markparse"
-      files { "columns.h", "errors.h", "getline.h", "markparse.c", "markparse.h", "markup.h", "nwbuffer.h" }
-  project "markup"
-      files { "errors.h", "markup.c", "markup.h", "strsave.h" }
-  project "misc-lua"
-      files { "lua-help.h", "misc-lua.c", "misc-lua.h" }
-  project "modtrees"
-      files { "errors.h", "modtrees.c", "modtrees.h", "modules.h", "strsave.h" }
-  project "modules"
-      files { "columns.h", "errors.h", "modtrees.h", "modules.c", "modules.h", "strsave.h" }
-  project "mpipe"
-      files { "fromascii.h", "ipipe.h", "mpipe.c", "mpipe.h", "nwbuffer.h", "xpipe.h" }
-  project "mpipe-lua"
-      files { "lua-help.h", "mpipe.h", "mpipe-lua.c", "mpipe-lua.h" }
-  project "notangle"
-      files { "errors.h", "getline.h", "match.h", "modtrees.h", "modules.h", "notangle.c", "notangle.h", "nwbuffer.h", "strsave.h" }
-  project "noweb-lua"
-      files { "lua-help.h", "noweb-lua.c", "noweb-lua.h", "util.h" }
-  project "nwbuffer"
-      files { "nwbuffer.c", "nwbuffer.h" }
-
-
-
-  --[[Generating nwbuffer-lua.c is a nightmare in the original sources.
-
-  FIXME: I needed to shift around the calls to open after assigning io.open's
-  result to the nwbufferlua_file variable, which didn't exist previously; be
-  sure of the effect of this paragraph of code, given the nightmarish scenario
-  in the original Makefile and noweb sources.]]
-  local nwbufferlua = os.tmpname()
-  os.executef("{COPYFILE} nwbuffer-lua.nw %s", nwbufferlua)
-  nwbufferlua_file = io.open(nwbufferlua, "a+")
-  io.output(nwbufferlua):write("<<key macros>>=\n")
-  nwbufferlua_file:close()
-  nwbufferlua_file = io.open(nwbufferlua, "a+")
-  tangle_ch_file("nwbuffer", "key macros", nwbufferlua, "a+")
-  io.write("@\n")
-  nwbufferlua_file:close()
-  tangle_ch_file(nwbufferlua, "*", "build/nwbuffer-lua.c")
-  project "nwbuffer-lua"
-      files { "lua-help.h", "nwbuffer.h", "nwbuffer-lua.c" }
-
-
-
-  project "nwmtime"
-      files { "getline.h", "nwmtime.c" }
-  project "nwprocess"
-      files { "nwprocess.c", "nwprocess.h" }
-  project "nwtime"
-      files { "nwtime.c", "nwtime.h" }
-  project "recognize"
-      files { "recognize.c" }
-  project "stages"
-      files { "cargs.h", "fromascii.h", "lua-help.h", "markparse.h", "notangle.h", "nwbuffer.h", "stages.c", "stages.h" }
-  project "strsave"
-      files { "errors.h", "strsave.c", "strsave.h" }
-  project "sys"
-      files { "sys.c", "sys.h" }
-  project "util"
-      files { "precompiled.h", "sys.h", "util.c", "util.h" }
-  project "xpipe"
-      files { "errors.h", "nwprocess.h", "sys.h", "util.h", "xpipe.c", "xpipe.h" }
-  project "xpipe-lua"
-      files { "cargs.h", "lua-help.h", "xpipe.h", "xpipe-lua.c", "xpipe-lua.h" }
-
-  -- Vendored projects linked against are defined in ../../vendor/premake5.lua
-  project "no"
-      kind "ConsoleApp"
-      links { "CII", "Lua"}
-      links {
-        "columns",   "cpif",
-        "env-lua",   "errors",
-        "finduses",  "fromascii",
-        "getline",   "ipipe",
-        "ipipe-lua", "lua-help",
-        "lua-main",  "main",
-        "markparse", "markup",
-        "misc-lua",  "modtrees",
-        "modules",   "mpipe",
-        "mpipe-lua", "notangle",
-        "noweb-lua", "nwbuffer",
-        "nwbuffer-", "nwprocess",
-        "nwtime",    "recognize",
-        "stages",    "strsave",
-        "sys",       "util",
-        "xpipe",     "xpipe-lua"
-      }
-
-  project "nwmtime"
-      kind "ConsoleApp"
-      links {
-        "columns",
-        "errors",
-        "getline",
-        "nwmtime"
-      }
-#+end_src
-* Normal Ramsey's old TODO, or "Things to be done for noweb 3"
-:PROPERTIES:
-:CUSTOM_ID: things-to-be-done-for-noweb-3
-:END:
-
-#+begin_center
-Last serious update: July, 2000
-#+end_center
-
-Noweb 3 is almost ready to come out of alpha and become beta software. The
-essential things are to get /new manual pages/ and /better configuration/.
-
-To volunteer for one of these tasks, or for something else you think needs
-doing, send mail to [[mailto:nr@eecs.harvard.edu][Norman Ramsey.]]
-
-The tasks are in rough order of priority.
-
-| What     | Who    | Status     | Details                                                                                                                                                                                           |
-|----------+--------+------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| man      |        |            | Write man pages, especially documenting new options and filters.                                                                                                                                  |
-| config   |        |            | Improve configuration. Ideally, bundle scripts in binary.                                                                                                                                         |
-| winmake  |        |            | Come up with Makefiles that work on Windows.                                                                                                                                                      |
-| port     |        |            | Write porting instructions.                                                                                                                                                                       |
-| Mac      |        |            | Do a Mac port.                                                                                                                                                                                    |
-| DOS      |        |            | Do a DOS port.                                                                                                                                                                                    |
-| Win32    |        |            | Do a Win32 port (Windows 95/98/NT).                                                                                                                                                               |
-| sort     |        |            | Come up with a sorting method that is consistent with noweb 2.9                                                                                                                                   |
-| untangle |        | incomplete | Replace nw2 nountangle lua_script with docs2comments filter in Lua, taking ideas from unreleased Icon docs2comments filter. Begun but not finished.                                                   |
-| autodefs |        |            | Rewrite the autodefs machinery in Lua, plus a couple of language-specific filters.\\                                                                                                              |
-| Rat      | nrnrnr |            | Write rationale and overview for Hacker's Guide.                                                                                                                                                  |
-| Ints     |        |            | Document Lua interfaces for pipeline, buffer. How to use interfaces to build a pipeline. How to use interfaces to write a stage.                                                                  |
-| Stages   |        |            | Document Lua functions for standard stages.                                                                                                                                                       |
-| count    |        |            | Rewrite nocount in Lua to serve as an example for Hacker's Guide (also for distribution).                                                                                                         |
-| stdfil   |        |            | Develop an army of standard filters, to include, e.g., nocond, nwdate, the stupid C header trick, etc.                                                                                            |
-| order    | nrnrnr | ugh        | Get the order of arguments for stages straight once and for all. Closure args should come last so they can be optional.                                                                           |
-| Mcomb    |        |            | Merge markup.nw into markparse.nw. Trim redundant code. Try to control mutation so that strsave is not needed. (possibly use Str or Atom)                                                         |
-| unmarkup |        |            | Test the converted unmarkup pipeline stage.                                                                                                                                                       |
-| Lua+nw   |        |            | Document the =case= and =globmatch= extensions to Lua 2.5                                                                                                                                         |
-| Basis    |        |            | Document the "initial basis" of stuff available for people writing Lua code for noweb (lists, environments, others...).                                                                           |
-| filman   |        |            | Write man page for users of noweb filters (as opposed to Hacker's Guide). For example, a filter should replace the =nountangle= command.                                                          |
-| sys      |        |            | Figure out how to reorganize the C code to minimize and isolate system dependencies.                                                                                                              |
-| clean    |        |            | Find ways to rationalize, reorganize, and reduce the code. Figure out how to exploit the presence of CII.                                                                                         |
-| strip    |        |            | Strip exceptions out of CII.                                                                                                                                                                      |
-| perf     |        |            | Do performance studies and figure out how to make things run blazingly fast.                                                                                                                      |
-| man      |        |            | Revise the Version 2 man pages. Look for features to eliminate.                                                                                                                                   |
-| fileglob |        |            | Find a way of doing globbing expansion of file names (need a list of files in a given directory). (Needed to support -showautodefs). NR has some old Unix code from a course he taught years ago. |
-| ifdef    |        |            | Use the new stupid noweb trick to insert [[#ifdef]] in headers automatically.                                                                                                                         |
-| Str      |        |            | Create Lua bindings for Hanson's string scanning, which should simplify porting old Icon code.                                                                                                    |
-
-** Things that have actually been done
-:PROPERTIES:
-:CUSTOM_ID: things-that-have-actually-been-done
-:END:
-
-| What   | Who    | Status | Details                                                                                                                                                     |
-|--------+--------+--------+-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Pipe   | nrnrnr | DONE   | Eliminate source and sink types from MPipe, IPipe (but keeping dynamic type distinction for Lua code). Seek dramatic reduction in sizes of implementations. |
-| totex  | nrnrnr | DONE   | Convert totex from Icon to Lua.                                                                                                                             |
-| tohtml | nrnrnr | DONE   | Convert tohtml from Icon to Lua.                                                                                                                            |
-| noidx  | nrnrnr | DONE   | Convert noidx from Icon to Lua.                                                                                                                             |
-
-* =diff= of Norman's lua-2.5+nw and Lua 2.5.1
+Ironically, building Noweb 3 is more difficult than building Noweb 2. Once Noweb
+2 is available, which it must be to bootstrap Noweb 3 despite Noweb 3 containing
+a minimal subset of Noweb 2 for tangling, modern hardware makes the speed
+considerations of Noweb 2 inconsequential, as Ramsey states. The reason I am
+interested in Noweb 3 is because many filters are implemented in Lua, rather
+than Icon. I don't want to learn Icon to hack on Noweb 2 filters, and it really
+isn't ideal to implement advanced customizations or hacks in AWK, despite that
+language being incredibly well-documented, a language I already know, and a
+language for which I have a print manual!
+
+It's my goal to be the person to rewrite Noweb 3 in Lua 5+, renaming it as
+Rammel because the significant time investment merits credit on that part as
+well as the demands of the original COPYRIGHT, which are a little at odds with
+another LICENSE indicated in some sources or another version of Noweb 3. I'll
+write to Ramsey and ask about calling it Noweb 3, but I'd rather stick with the
+Rammel name at this point.
+
+** Building Lua 2.5.1 requires patches
+The source files "luamem.h" and "luamem.c" exist in the source repository for
+Lua 2.5.1, but all other sources refer to "mem.h" and "mem.c"; the other sources
+were updated by the time Lua 3 was released. A patch is to be shipped with
+Rammel so Lua 2.5.1 (with the Ramsey customizations) can be built.
+
+** Building Lua 2.5.1 requires RCS
+Without RCS installed the build seems to fail.
+
+** =diff= of Norman's lua-2.5+nw and Lua 2.5.1
 The git log of Noweb 3 indicates that Norman lost track of the updates he made
 to Noweb 3 at one point and simply committed everything he had ("who knows what
 changes!"): a very normal occurance in software development. When I first read
@@ -1469,7 +90,8 @@ that commit message I thought Norman was referring to the changes made to Lua
 changes, however; regardless, the diff lives here and is useful to have because
 it can be applied as a patch to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
 
-#+begin_src diff
+#+name: patch
+#+begin_src diff :tangle src/lua-2.5.1-inout.c.patch
   --- /tmp/lua/inout.c	2025-11-18 17:54:06.123407721 -0700
   +++ /tmp/noweb3/lua-2.5+nw/src/inout.c	2025-11-18 17:54:35.281295458 -0700
   @@ -5,7 +5,7 @@
@@ -1893,3 +515,1542 @@ it can be applied as a patch to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
    	case LEOP:
 
 #+end_src
+* TODO replace nwconfig and the top-level makefile with Premake5
+Premake5 is used to obsolete manual configuration of the build, which was
+achieved through edition of the nwconfig makefile included in the main makefile.
+
+#+begin_src clean :noweb yes :tangle build/premake5.lua
+  --[[© 2025 Bryce Carson.
+    See the file README for more information on copying this software.]]
+
+  workspace "Rammel"
+      configurations { "Release" }
+      filter { "system:linux", "action:gmake" }
+      buildoptions { "-std=c99", "-pedantic", "-Wall" }
+      targetdir "bin/%{cfg.buildcfg}"
+      includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+      -- linkoptions { }
+
+      <<options>>
+      <<vendored Lua 2.5.1+nw>>
+      <<vendored CII>>
+      <<tools>>
+      <<Rammel>>
+
+      newaction {
+        trigger     = "install",
+        description = "Install the software",
+        execute     = function ()
+          -- Install tools
+          <<install libexec>>
+
+          -- Install Noweb Lua files
+          <<install noweb lua scripts>>
+
+          -- Install binary files
+          <<install bin>>
+
+          -- Install non-binary files
+          <<install lib>>
+
+          -- Install documentation
+          <<install doc>>
+        end
+      }
+#+end_src
+
+** TODO LIST [2/6]
+- [X] options
+- [X] tools
+- [ ] vendored Lua 2.5.1+nw
+- [ ] vendored CII
+- [ ] Rammel
+- [ ] install action
+
+Rammel's premake script noweb chunk must be updated to point to source files
+relative to the new build script location (the root directory).
+
+** [options] Build-time Configuration Options
+All the options for configuring Noweb 3 are also present in Rammel,
+but implemented in Premake5 rather than Make variables.
+
+The configuration arguments, set at the command-line, are as follows:
+
+- LD         :: what to call to build an executable binary
+- LDFLAGS    :: general flags used to build an executable
+- LIBPROLOG  :: anything you need to place before listing libraries
+- LIBEPILOG  :: anything you need to place after listing libraries
+
+The =options= Org source block below defines a nested table of options; each
+nested table contains the arguments to the Premake function ~newoption()~, which
+takes the nested table as an argument. All the nested tables in the =opts= table
+are looped over, calling ~newoption()~ for each.
+
+#+begin_src lua :noweb-ref options
+  local opts = {
+    -- Kernel-related Options
+    PIPE = {
+      value = "SYSTEM_CALL",
+      description = "How to run pipelines of programs and utilties.",
+      allowed = {
+        { "fork", "Create a child process by duplicating the calling process." },
+        { "spawn", "Create a child process with the combined functionality of ``fork'' and ``exec''." }
+      },
+      default = "fork",
+      category = "System Calls"
+    },
+
+    -- Paths
+    BIN = {
+      value = "DIRECTORY",
+      description = "The installation location for the 'no' command",
+      default = "/usr/bin",
+      category = "Paths"
+    },
+
+    LIBEXEC = {
+      value = "(SUB)DIRECTORY",
+      description = "The installation location of Rammel scripts and configuration files",
+      default = "/usr/libexec/rammel",
+      category = "Paths"
+    },
+
+    TEXINPUTS = {
+      value = "TEXMF_SUBDIRECTORY",
+      description = "The installation location for LaTeX styles and macros (following the TeX Directory Standard)",
+      default = "/usr/share/texlive/texmf-local/tex/latex/rammel",
+      category = "Paths"
+    },
+
+    SHELL = {
+      value = "PROGRAM_PATH",
+      description = "The shell to use when calling scripts.",
+      default = "/usr/bin/bash",
+      category = "Paths"
+    },
+
+    -- Compilation settings
+    CC = {
+      value = "COMPILER",
+      description = "The name of an ANSI C compiler.",
+      category = "C Compilation"
+    },
+    CFLAGS = {
+      value = "FLAGS",
+      description = "General C compilation flags used througout the entire C build process.",
+      category = "C Compilation"
+    },
+    XCFLAGS = {
+      value = "FLAGS",
+      description = [[
+        Flags used in addition to ``CFLAGS'' when building the ``no'' binary. If
+        your system provides tempnam(3), noweb's indexing will be more efficient
+        if you add -DTEMPNAM to XCFLAGS given to the C compiler.]],
+      category = "C Compilation"
+    },
+    LD = {
+      value = "LINKER_LOADER",
+      description = "A C linker.",
+      category = "C compilation"
+    },
+    LDFLAGS = {
+      value = "LINKER_FLAGS",
+      description = "Compilation flags for the linking stage, pased to ``ld''.",
+      category = "C Compilation"
+    },
+    LIBPROLOGUE = {
+      value = "LINKER_FLAGS_PREPENDED",
+      description = "Options and flags passed to LINKER_LOADER prior to LDFLAGS.",
+      category = "C Compilation"
+    },
+    LIBEPILOGUE = {
+      value = "LINKER_FLAGS_APPENDED",
+      description = "Options and flags passed to LINKER_LOADER prior to LDFLAGS.",
+      category = "C Compilation"
+    },
+    AR = {
+      value = "BUNDLER",
+      description = [[
+        What to call to build an object-code library.
+        An archiver or bundler tool used to produce object-code libraries from multiple object
+        files; whatever ``ar'' is on your system, or whatever produces object-code libraries
+        like .so or .dll.]],
+      category = "C Compilation"
+    },
+
+    -- System and C Library peculiarities
+    RANLIB = {
+      value = "ranlib",
+      allowed = {
+        { "ranlib", "A program for indexing object-code libraries." },
+        { "echo", "A fallback." },
+      },
+      description = "How to index an object-code library.",
+      category = "Utilities"
+    },
+    CIIMAXALIGN = {
+      value = "",
+      description = [[
+        The alignment (in bytes) of pointers returned by malloc; see
+        cii/install.html for more]],
+      category = "Utilities"
+    },
+    XINCLUDES = {
+      value = "",
+      description = "",
+      category = "Utilities"
+    },
+    POPEN = {
+      value = "",
+      description = "",
+      category = "Utilities"
+    },
+    POSIX = {
+      value = "",
+      description = "",
+      category = "Utilities"
+    },
+    STRERROR = {
+      value = "",
+      description = "",
+      category = "Utilities"
+    }
+  }
+
+  for option_flag_trigger, option_flag_trigger_table in pairs(opts) do
+    newoption {
+      trigger = option_flag_trigger,
+      value = option_flag_trigger_table.value,
+      description = option_flag_trigger_table.description,
+      allowed = option_flag_trigger_table.allowed,
+      default = option_flag_trigger_table.default,
+      category = option_flag_trigger_table.category
+    }
+  end
+#+end_src
+
+**** TODO Perhaps use the descriptions in these strings instead of those in the options table. :alternative:
+
+- CC :: "the name of an ANSI C compiler"
+- CFLAGS :: "general flags used througout the build"
+- XCFLAGS :: "flags used in addition to CFLAGS when building no"
+- O :: "the extension of object files produced by your compiler"
+- LD :: "what to call to build an executable binary"
+- LDFLAGS :: "general flags used to build an executable"
+- LIBPROLOG :: "anything you need to place before listing libraries"
+- LIBEPILOG :: "anything you need to place after listing libraries"
+- E :: "the extension of executable files produced by your linker"
+- AR :: "what to call to build an object-code library"
+- A :: "the extension of library files produced by your archiver"
+- RMDIR :: "How to recursively and quietly remove directories"
+- RM :: "How to quietly remove a set of files"
+- CP :: "How to copy a file"
+- CPR :: "How to recursively copy all files in a directory"
+- RANLIB :: "how to index an object-code library
+
+**** Linker PROLOGUE and EPILOGUE variables
+On Windows, the default flags for Noweb 3 were "/nologo /Fe: /link".
+
+- =/link= :: Passes the specified option to LINK.
+- =/Fe:= :: Specifies a name and a directory for the .exe file or DLL created by the compiler.
+- =/nologo= :: Suppresses display of sign-on banner.
+
+On Linux the defaults were:
+
+- gcc :: The GNU Compiler Collection command name.
+- LFLAGS :: Linker flags, which will be betwixt LIBPROLOG and LIBEPILOG.
+- LIBPROLOG :: Things to prepend to the list of linker arguments.
+- LIBEPILOG :: Things to append to the list of linker arguments, like =-lm=.
+
+[[https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html][=-nolibc= has the following description]]:
+
+#+begin_quote
+Do not use the C library or system libraries tightly coupled with it when
+linking. Still link with the startup files, libgcc or toolchain provided
+language support libraries such as libgnat, libgfortran or libstdc++ unless
+options preventing their inclusion are used as well. This typically removes
+=-lc= from the link command line, as well as system libraries that normally go
+with it and become meaningless when absence of a C library is assumed, for
+example =-lpthread= or =-lm= in some configurations. This is intended for
+bare-board targets when there is indeed no C library available.
+#+end_quote
+
+** [tools, vendored, Rammel's Lua sources, Rammel's C sources, Rammel itself] Build process
+There are several actions that must be taken. These aren't analogous to the
+Premake5 conception of actions.
+
+First, a bootstrapped (past-tense) version of the Noweb 2 C sources are built,
+as these are used to bootstrap Rammel (a Noweb 3-derived program). Second,
+vendored shared libraries are built (/[[https://drh.github.io/cii/][Dave Hansen]]'s/ CII and /[[https://www.puc-rio.br/][PUC-Rio]]'s/ Lua
+versions 2.5.1 [with customizations] and 5.4.8). Third, the Rammel sources are
+tangled and built using the vendored libraries.
+
+*** DONE Bootstrap Rammel's build by building the Noweb 2 tools used until Rammel is built (and can rebuild itself)
+CLOSED: [2026-02-02 Mon 23:58]
+Bootstrap Rammel by building then installing its /tools/ in the tools
+subdirectory of the Rammel [[https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch04s07.html][libexec directory]]. The bootstrapped tools are used
+during compilation to build Rammel. The details of how these /tools' sources/
+are built follows.
+
+Rammel requires Noweb 2 for bootstrapping its own sources, as did Noweb 3. The
+=targetdir= function in Premake sets the installation target directory, and it
+is set in the top-level premake script. Once Rammel is built a first time using
+the tools it can thereafter rebuild itself if necessary.
+
+#+begin_src lua :noweb-ref tools
+  -- OBSOLETE: this is only used to HTML-ize the TeX sources of todo.nw.
+  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
+  --[[
+  project "l2htodo"
+      kind "ConsoleApp"
+      language "C"
+      location "build/tools/l2htodo"
+      files {
+        "l2htodo.c"
+      }
+  --]]
+
+  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
+  -- /home/bryce/src/rammel/src/tools/build/tools/markup/bin/Debug
+  project "tool-markup"
+      filename "markup"
+      kind "ConsoleApp"
+      language "C"
+      location "tools/markup"
+      links { "cii:static" }
+      files {
+        "../src/tools/markmain.*",
+        "../src/tools/strsave.*",
+        "../src/tools/markup.*",
+        "../src/tools/errors.*",
+        "../src/tools/getline.*",
+        "../src/tools/columns.*"
+      }
+
+  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
+  project "tool-nt"
+      filename "nt"
+      kind "ConsoleApp"
+      language "C"
+      location "tools/nt"
+      files {
+        "../src/tools/notangle.*",
+        "../src/tools/getlines.*",
+        "../src/tools/match.*",
+        "../src/tools/modules.*",
+        "../src/tools/modtrees.*",
+        "../src/tools/strsave.*",
+        "../src/tools/main.*",-- requires a patch, to make main return int explicitly
+        "../src/tools/errors.*",
+        "../src/tools/columns.*"
+      }
+
+  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
+  project "tool-tie"
+      filename "tie"
+      kind "ConsoleApp"
+      language "C"
+      location "tools/tie"
+      files {
+        "../src/tools/tie.c"
+      }
+
+  -- Requires CFLAGS, whatever they are. Linking requires LFLAGS.
+  -- Requires a patch such that it includes <string.h>
+  project "tool-nocond"
+      filename "nocond"
+      kind "ConsoleApp"
+      language "C"
+      location "tools/nocond"
+      files {
+        "../src/tools/nocond.c"
+      }
+#+end_src
+
+**** TODO Configure the debug build
+**** TODO Test if the tools still meet the requirements of Rammel
+**** DONE CFLAGS and LFLAGS
+CLOSED: [2026-02-02 Mon 23:57]
+These were set in the old makefile, but I don't have them set here. However,
+these are inherited from the Rammel workspace: =buildoptions=; =linkoptions=.
+
+**** DONE Patch nt.[ch]#main to return an int explicitly
+CLOSED: [2026-01-06 Tue 00:27]
+**** DONE Install the tools to LIB3/tools
+CLOSED: [2026-02-01 Sun 23:51]
+
+#+begin_src lua :noweb-ref "install libexec"
+  for i in {"markup", "nt", "tie", "nocond"} do
+    os.copyfile(path.getabsolute(i, "tools/"),
+                path.getabsolute(i, _OPTIONS.LIBEXEC))
+  end
+#+end_src
+
+*** Vendored
+**** DONE MAKE Lua 2.5.1+nw and install it in $(LIB3)/lua-2.5 according to LuaMakefile
+CLOSED: [2026-02-03 Tue 00:53]
+/Lua 2.5.1+nw/ is Lua 2.5.1 with changes supporting the implementation of Noweb 3, what Rammel is derived from.
+
+See [[*=diff= of Norman's lua-2.5+nw and Lua 2.5.1][=diff= of Norman's lua-2.5+nw and Lua 2.5.1]].
+
+It's necessary to patch the Lua 2.5.1 sources with a patch I created, and also a
+patch generated with diff to add Ramsey's customizations to Lua 2.5.1.
+
+#+begin_src lua :noweb-ref "vendored Lua 2.5.1+nw
+  project "patch_lua"
+  kind "Utility"
+  buildcommands {
+    -- Apply patches
+    "patch -d %{cfg.buildtarget.abspath}/../vendor/lua-2.5 <../src/0001-luamem.patch",
+    "patch -d %{cfg.buildtarget.abspath}/../vendor/lua-2.5 <../src/0002-lua-nw-inout.c.patch",
+  }
+#+end_src
+
+Lua 2.5.1 can then be built.
+
+#+begin_src lua :noweb-ref "vendored Lua 2.5.1+nw
+  project "Lua2_5_1"
+  kind "StaticLib"
+  files {
+    "../vendor/lua-2.5/*.h",
+    "../vendor/lua-2.5/*.c"
+  }
+  link {
+    "patch_lua"
+  }
+#+end_src
+
+***** TODO Apply patches to Lua 2.5.1 [1/2]
+When building Rammel with Lua 2.5.1 it will need some patching before building,
+and require additional software on the build machine. How do I require CVS on
+the build machine?
+
+- [X] Patch
+- [ ] Require CVS
+
+**** TODO Make Lua 5.4.8
+**** TODO CII
+Hansen's CII already includes an NT-compatible makefile, so rather than
+expending effort to convert the existing makefiles for Windows (NT) and for UNIX
+into a Premake lua_script I will just call the respective make file, and require
+make for Rammel to build.
+
+#+begin_src lua :noweb-ref vendored CII
+  project "cii"
+  kind "StaticLib"
+  location "vendor/c-interfaces-and-implementations"
+  files {
+    "../vendor/c-interfaces-and-implementations/src/*.c",
+    "../vendor/c-interfaces-and-implementations/include/*.h",
+  }
+  if not os.host() == "windows" then
+    removefiles("../vendor/c-interfaces-and-implementations/src/thread.c",
+                "../vendor/c-interfaces-and-implementations/src/thread-nt.c")
+  end
+  buildcommands {"make %{cfg.buildcfg}"}
+  rebuildcommands {"make clean %{cfg.buildcfg}", "make %{cfg.buildcfg}"}
+  cleancommands {"make clean %{cfg.buildcfg}"}
+#+end_src
+
+Unfortunately, this project cannot be built successfully because there are errors in the current code. I wonder what's going on?
+
+*** TODO Change to the C directory and MAKE:
+The sources in the C directory are made quite simply. The following is the overall script to build the C sources.
+
+Things that need to be defined:
+
+- NOTANGLE
+- TANGLEOPTS
+- OUTPUT
+- LUALIB
+- LUA
+- TOOLS
+- CPIIF
+- LIB3
+- PIPE
+- NOCOND
+
+  #+begin_src sh
+    make -C c "NOTANGLE=more" \
+         "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" \
+         "CPIF=>" \
+         "TOOLS=$(LIB3)/tools" \
+         "LUA=../lua-2.5" \
+         "LUALIB=$(LIB3)/lua-2.5" \
+         "OUTPUT=$(LIB3)/c"
+  #+end_src
+
+*** TODO Tangle the Lua sources and make minor modifications thereto
+The Lua sources of Rammel are Lua scripts tangled from a single web.
+
+Within the original makefile the default target---=all=---will run.
+
+#+begin_src sh
+  # CPIF is initially the symbol for stdout redirection
+  make -C lua "NOTANGLE=more TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)/tools/markup | $(LIB3)/tools/nt CPIF=> OUTPUT=$(LIB3)/lua"
+#+end_src
+
+The original Makefile for the Lua directory is quoted here...
+
+#+begin_src makefile
+  include ../nwconfig
+
+  CONFIG=	$(OUTPUT)$(P)pipes.cfg \
+  	$(OUTPUT)$(P)sys.cfg \
+  	$(OUTPUT)$(P)noweb.cfg \
+  	$(OUTPUT)$(P)util.cfg \
+  	$(OUTPUT)$(P)list.nws \
+  	$(OUTPUT)$(P)set.nws
+
+  FILTERS=	$(OUTPUT)$(P)cat.nws \
+  		$(OUTPUT)$(P)stripconds.nws \
+  		$(OUTPUT)$(P)xchunks.nws \
+  		$(OUTPUT)$(P)lines.nws
+
+  STAGES=	$(OUTPUT)$(P)totex.nws \
+  	$(OUTPUT)$(P)tohtml.nws \
+  	$(OUTPUT)$(P)noidx.nws \
+  	$(OUTPUT)$(P)elide.nws \
+  	$(OUTPUT)$(P)unmarkup.nws \
+  	$(FILTERS)
+
+  SCRIPTS=	$(OUTPUT)$(P)tangle \
+  		$(OUTPUT)$(P)weave
+
+  all: $(CONFIG) $(STAGES) $(SCRIPTS)
+
+  test: $(CONFIG) $(STAGES) $(SCRIPTS)
+  	@echo 'write("Scripts load from .\n")' | NWPATH=. no
+  	@echo 'argv = {"-internaldefaults", "-n", "-html", "/dev/null"}; do_nwfile("weave.nws"); write("Null weave OK.\n")' | NWPATH=. no
+  	@echo 'argv = {"-internal", "test.nw"}; do_nwfile("tangle.nws"); write("Null tangle OK.\n")' | NWPATH=. no
+
+  htmltest: $(CONFIG) $(STAGES) $(SCRIPTS)
+  	@echo 'testfile("/home/nr/www/noweb/index.html")' | NWPATH=. no
+
+  clean:
+
+  clobber: clean
+  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS) 2>$(NUL)
+
+  install: $(SCRIPTS) $(CONFIG) $(STAGES)
+  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i;                 done
+  	for i in $(SCRIPTS);          do cp                         $$i   $(LIB3)/`basename $$i .nws`; done
+
+  $(OUTPUT)$(P)pipes.cfg:      config.nw;     $(NOTANGLE) config.nw     $(TANGLEOPTS) -Rpipes.cfg $(CPIF) $@
+  $(OUTPUT)$(P)sys.cfg:        config.nw;     $(NOTANGLE) config.nw     $(TANGLEOPTS) -Rsys.cfg   $(CPIF) $@
+  $(OUTPUT)$(P)noweb.cfg:      config.nw;     $(NOTANGLE) config.nw     $(TANGLEOPTS) -Rnoweb.cfg $(CPIF) $@
+  $(OUTPUT)$(P)util.cfg:       config.nw;     $(NOTANGLE) config.nw     $(TANGLEOPTS) -Rutil.cfg  $(CPIF) $@
+  $(OUTPUT)$(P)list.nws:       list.nw;       $(NOTANGLE) list.nw       $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)set.nws:        set.nw;        $(NOTANGLE) set.nw        $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)totex.nws:      totex.nw;      $(NOTANGLE) totex.nw      $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)tohtml.nws:     tohtml.nw;     $(NOTANGLE) tohtml.nw     $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)noidx.nws:      noidx.nw;      $(NOTANGLE) noidx.nw      $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)elide.nws:      elide.nw;      $(NOTANGLE) elide.nw      $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)unmarkup.nws:   unmarkup.nw;   $(NOTANGLE) unmarkup.nw   $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)cat.nws:        cat.nw;        $(NOTANGLE) cat.nw        $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)stripconds.nws: stripconds.nw; $(NOTANGLE) stripconds.nw $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)xchunks.nws:    xchunks.nw;    $(NOTANGLE) xchunks.nw    $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)lines.nws:      lines.nw;      $(NOTANGLE) lines.nw      $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)tangle:         tangle.nw;     $(NOTANGLE) tangle.nw     $(TANGLEOPTS)             $(CPIF) $@
+  $(OUTPUT)$(P)weave:          weave.nw;      $(NOTANGLE) weave.nw      $(TANGLEOPTS)             $(CPIF) $@
+
+  ################################################################
+  #
+
+  noidx.tex: noidx.nw
+  	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
+#+end_src
+
+Everything that didn't use a root (see the following list) used the default root
+of ~<<*>>=~, per the defaults of Noweb 2 itself.
+
+- list.nw
+- set.nw
+- totex.nw
+- tohtml.nw
+- noidx.nw
+- elide.nw
+- unmarkup.nw
+- cat.nw
+- stripconds.nw
+- xchunks.nw
+- lines.nw
+- tangle.nw
+- weave.nw
+
+Among the original, separate noweb files four roots were tangled from
+=config.nw=: =pipes.cfg=; =sys.cfg=; =noweb.cfg=; =util.cfg=.
+
+#+begin_src lua :noweb-ref "tangle noweb lua scripts"
+  local notangle = path.getabsolute("nt", _OPTIONS.libexec)
+  local notangle_options = ""
+  local cpif = ">"--could be changed to the cpif utility
+  local function tangle(notangle, notangle_options, cpif, target, root) do
+    if root then
+      local cpif_root = string.format("-R%s %s %s", root, cpif, root)
+    elseif
+      local cpif_root = string.format("%s %s", cpif, root)
+    end
+    os.executef("%s lua.nw %s %s", notangle, notangle_options, cpif_root, target)
+  end
+  for target in { "pipes.cfg", "sys.cfg", "noweb.cfg", "util.cfg" } do
+    tangle(notangle, notangle_opts, cpif, target, target)
+  end
+  local scripts = {
+    "list.nws",
+    "set.nws",
+    "totex.nws",
+    "tohtml.nws",
+    "noidx.nws",
+    "elide.nws",
+    "unmarkup.nws",
+    "cat.nws",-- apparently not installed anywhere
+    "stripconds.nws",
+    "xchunks.nws",
+    "lines.nws",
+
+    "tangle",
+    "weave"
+  }
+  for lua_script in scripts do
+    tangle(notangle, notangle_opts, cpif, lua_script)
+  end
+
+  local config = { "pipes.cfg", "sys.cfg", "noweb.cfg", "util.cfg", "list.nws", "set.nws" }
+
+  -- FIXME: The filters cat, stripconds, xchunks, and lines are missing.
+  local configurations_and_stages = {
+    -- Lua+nw, but with a different intention.
+    "pipes.cfg",
+    "sys.cfg",
+    "noweb.cfg",
+    "util.cfg",
+    "list.nws",
+    "set.nws",
+    "totex.nws",
+    "tohtml.nws",
+    "noidx.nws",
+    "elide.nws",
+    "unmarkup.nws"
+  }
+
+  -- Overwrite the tangled nws files with their edited versions. This is
+  -- alternative to calling sed.
+  for configuration_or_stage in configurations_and_stages do
+    local edited = io.output(io.tmpfile())
+    for line in io.lines(configuration_or_stage) do
+      io.write(string.gsub(line, "|LIBDIR|", "$(LIB2)"))
+    end
+    edited:close()
+    os.copyfile(edited, path.getabsolute(i, "build/src/lua/"))
+  end
+#+end_src
+
+#+begin_src lua :noweb-ref "install noweb lua scripts"
+  for f in { script, configuration_or_stage } do
+    os.copyfile(path.getabsolute(f, "build/src/lua/"),
+                path.getabsolute(f, _OPTIONS.LIB3))
+  end
+#+end_src
+
+**** Formal Tests
+Two tests were defined in the original Makefile, one for 
+
+#+begin_src makefile
+  test: $(CONFIG) $(STAGES) $(SCRIPTS)
+  	@echo 'write("Scripts load from .\n")' | NWPATH=. no
+  	@echo 'argv = {"-internaldefaults", "-n", "-html", "/dev/null"}; do_nwfile("weave.nws"); write("Null weave OK.\n")' | NWPATH=. no
+  	@echo 'argv = {"-internal", "test.nw"}; do_nwfile("tangle.nws"); write("Null tangle OK.\n")' | NWPATH=. no
+
+  htmltest: $(CONFIG) $(STAGES) $(SCRIPTS)
+  	@echo 'testfile("/home/nr/www/noweb/index.html")' | NWPATH=. no
+#+end_src
+
+The first test ensures that =no= can load scripts from the current directory.
+The envvar =NWPATH= was set to =.=, the current directory, and =no= called with
+it standard input from the =@echo= lines.
+
+#+begin_src lua
+  write("Scripts load from .\n");
+  argv = {"-internaldefaults", "-n", "-html", "/dev/null"}; do_nwfile("weave.nws"); write("Null weave OK.\n");
+  argv = {"-internal", "test.nw"}; do_nwfile("tangle.nws"); write("Null tangle OK.\n");
+#+end_src
+
+*** Everything else
+Convert everything herein to Premake projects within a Workspace and create
+actions and targets.
+
+In general, this contains just:
+
+- boostrap (in LIB3/)
+- ciilib (in LIB3/)
+- lualib (in LIB3/)
+- all
+- tests
+
+#+begin_src makefile
+  # TODO: convert all of the following into Premake configuration.
+  # Stop editing.  No user-serviceable parts below.
+
+  all: code scripts styles
+
+  bootstrap:
+  	-mkdir $(LIB3)$(P)tools 2>$(NUL)
+  	cd tools && $(MK) "OUTPUT=$(LIB3)$(P)tools" && cd ..
+
+  ciilib:
+  	-mkdir $(LIB3)$(P)cii 2>$(NUL)
+  	cd cii && $(MK) "OUTPUT=$(LIB3)$(P)cii" && cd ..
+
+  lualib:
+  	-mkdir $(LIB3)$(P)lua-2.5 2>$(NUL)
+  	cd lua-2.5 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-2.5" && cd ..
+
+  lualib3:
+  	-mkdir $(LIB3)$(P)lua-3.0 2>$(NUL)
+  	cd lua-3.0 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)$(P)lua-3.0" && cd ..
+
+  code: bootstrap ciilib lualib
+  	-mkdir $(LIB3)$(P)c 2>$(NUL)
+  	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+
+  scripts: bootstrap
+  	-mkdir $(LIB3)$(P)lua 2>$(NUL)
+  	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+
+  styles: bootstrap
+  	-mkdir $(LIB3)$(P)tex 2>$(NUL)
+  	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+
+  careful:
+  	$(MK) clobber
+  	$(MK) all clean
+  	-$(RMDIR) $(LIB3)$(P)first 2>$(NUL)
+  	mkdir $(LIB3)$(P)first
+  	mkdir $(LIB3)$(P)first$(P)c
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)first$(P)c
+  	mkdir $(LIB3)$(P)first$(P)lua
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)first$(P)lua
+  	mkdir $(LIB3)$(P)first$(P)tex
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)first$(P)tex
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib
+  	-mkdir $(LIB3)$(P)c 2>$(NUL)
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)first$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	-mkdir $(LIB3)$(P)lua 2>$(NUL)
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=$(LIB3)$(P)first$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	-mkdir $(LIB3)$(P)tex 2>$(NUL)
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "NOTANGLE=$(LIB3)$(P)first$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	echo At this point we are attempting to build the literate version.
+  	echo It may fail if you have not previously installed noweb.sty.
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)first$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	-$(RMDIR) $(LIB3)$(P)first
+  	$(MK) all clean
+
+  transfer:
+  #	make 2 from bootstrap
+  	$(MK) clobber
+  	$(MK) all
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	mkdir $(LIB3)$(P)2b
+  	mkdir $(LIB3)$(P)2b$(P)c
+  	mkdir $(LIB3)$(P)2b$(P)lua
+  	mkdir $(LIB3)$(P)2b$(P)tex
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)2b$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)2b$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)2b$(P)tex
+  	$(MK) clean
+  #	make 3 from bootstrap
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib3
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)$(P)tools$(P)markup | $(LIB3)$(P)tools$(P)nt" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	mkdir $(LIB3)$(P)3b
+  	mkdir $(LIB3)$(P)3b$(P)c
+  	mkdir $(LIB3)$(P)3b$(P)lua
+  	mkdir $(LIB3)$(P)3b$(P)tex
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)3b$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)3b$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)3b$(P)tex
+  	$(MK) clean
+  #	make 2 from 2
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)22
+  	mkdir $(LIB3)$(P)22$(P)c
+  	mkdir $(LIB3)$(P)22$(P)lua
+  	mkdir $(LIB3)$(P)22$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=$(LIB3)$(P)2b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)22$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)22$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)22$(P)tex
+  	$(MK) clean
+  #	make 3 from 2
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib3
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)32
+  	mkdir $(LIB3)$(P)32$(P)c
+  	mkdir $(LIB3)$(P)32$(P)lua
+  	mkdir $(LIB3)$(P)32$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)2b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)2b$(P)lua" "NOTANGLE=$(LIB3)$(P)2b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)32$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)32$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)32$(P)tex
+  	$(MK) clean
+  #	make 2 from 3
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)23
+  	mkdir $(LIB3)$(P)23$(P)c
+  	mkdir $(LIB3)$(P)23$(P)lua
+  	mkdir $(LIB3)$(P)23$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-2.5" "LUALIB=$(LIB3)$(P)lua-2.5" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=$(LIB3)$(P)3b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)23$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)23$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)23$(P)tex
+  	$(MK) clean
+  #	make 3 from 3
+  	$(MK) clobber
+  	$(MK) bootstrap
+  	$(MK) ciilib
+  	$(MK) lualib3
+  	mkdir $(LIB3)$(P)c
+  	mkdir $(LIB3)$(P)lua
+  	mkdir $(LIB3)$(P)tex
+  	mkdir $(LIB3)$(P)33
+  	mkdir $(LIB3)$(P)33$(P)c
+  	mkdir $(LIB3)$(P)33$(P)lua
+  	mkdir $(LIB3)$(P)33$(P)tex
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "TOOLS=$(LIB3)$(P)tools" "LUA=..$(P)lua-3.0" "LUALIB=$(LIB3)$(P)lua-3.0" "OUTPUT=$(LIB3)$(P)c" && cd ..
+  	cd lua && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)$(P)3b$(P)c$(P)no tangle" "CPIF=>" "OUTPUT=$(LIB3)$(P)lua" && cd ..
+  	cd tex && $(MK) "NWPATH=$(LIB3)$(P)3b$(P)lua" "NOTANGLE=$(LIB3)$(P)3b$(P)c$(P)no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)$(P)tex" && cd ..
+  	cd c && $(MK) "NWPATH=$(LIB3)$(P)lua" "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+  	$(CPR) $(LIB3)$(P)c$(P)* $(LIB3)$(P)33$(P)c
+  	$(CPR) $(LIB3)$(P)lua$(P)* $(LIB3)$(P)33$(P)lua
+  	$(CPR) $(LIB3)$(P)tex$(P)* $(LIB3)$(P)33$(P)tex
+  	$(MK) clean
+  	$(MK) checkclean
+  	echo Let's see how different it is.
+  	pause
+  	$(MK) checkdifferent
+  	echo Let's see how similar it is.
+  	pause
+  	$(MK) checksame
+  	pause
+
+  checkdifferent:
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)3b
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)33
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)3b
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)33
+  	windiff $(LIB3)$(P)23 $(LIB3)$(P)3b
+  	windiff $(LIB3)$(P)23 $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)23 $(LIB3)$(P)33
+
+  checksame:
+  	windiff $(LIB3)$(P)2b $(LIB3)$(P)22
+  	windiff $(LIB3)$(P)22 $(LIB3)$(P)23
+  	windiff $(LIB3)$(P)3b $(LIB3)$(P)32
+  	windiff $(LIB3)$(P)32 $(LIB3)$(P)33
+
+  pdf: install
+  	-mkdir $(LIB3)$(P)c 2>$(NUL)
+  	cd c && $(MK) "OUTPUT=$(LIB3)$(P)c" doc && cd ..
+
+  install: install-code install-scripts install-styles
+
+  install-code: code
+  	$(CP) $(LIB3)$(P)c$(P)no$(E) $(BINDIR)
+  	$(CP) $(LIB3)$(P)c$(P)nwmtime$(E) $(BINDIR)
+
+  install-scripts: scripts
+  	$(CP) $(LIB3)$(P)lua$(P)* $(BINDIR)
+
+  install-styles: styles
+  	$(CP) $(LIB3)$(P)tex$(P)noweb.sty $(TEXINPUTS)$(P)latex$(P)misc$(P)noweb.sty
+  	$(CP) $(LIB3)$(P)tex$(P)nwmac.tex $(TEXINPUTS)$(P)generic$(P)misc$(P)nwmac.tex
+#+end_src
+
+#+begin_src lua :noweb-ref "install styles"
+  for i in {"noweb.sty", "nwmac.tex"} do
+    os.copyfile(i, path.getabsolute(i, _OPTIONS.TEXINPUTS))
+  end
+#+end_src
+
+**** TODO Reimplement the tests (the =transfers= target)
+An informal test framework was created by David, which examined the differences
+between pairs of compilations: e.g. compiling Noweb 3 with Lua 3, or with Lua 2.
+
+*** TODO Rendering the Literate Program, or User Manual
+- Set the LaTeX renderer (if any).
+- Configure a local markdown renderer or bundle libre rendering JavaScript in
+  HTML exports of Markdown documented webs.
+- Default should be HTML rendering because virtually all systems have a capable
+  web browser, while fewer systems have a sufficiently configured LaTeX
+  installation.
+
+#+begin_src sh
+  make "NOTANGLE=more" \
+       "TANGLEOPTS= | $(LIB3)/tools/markup | $(LIB3)/tools/nt" \
+       "CPIF=>" \
+       "OUTPUT=$(LIB3)/tex"
+#+end_src
+
+**** Rendering the literate document sources
+#+begin_src lua
+  local LaTeX="pdflatex"
+#+end_src
+
+Norman's Makefile had a ~doc~ target; evidently it took three renderings to
+fully process cross-references and labels.
+
+#+begin_src makefile
+  doc:	$(OUTPUT)$(P)doc.tex $(OUTPUT)$(P)allcode.tex
+  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
+  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
+  pdflatex -output-directory=$(OUTPUT) doc.tex
+#+end_src
+
+**** Hacker's Guide
+#+begin_src makefile
+  noidx.tex: noidx.nw
+  	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
+#+end_src
+
+** C source subdirectory README
+This subtree was formerly an independent Org file located at =src/c/README.org=.
+
+*** (Unused) Icon program
+- buildswitch.nw :: An icon implementation of "buildswitch".
+
+*** Individual Documents
+- doc.nw :: 
+- overview.nw :: A document giving an overview of work completed to enhance Noweb 2 leading to the third major version of Noweb.
+- hackers :: 
+
+*** C noweb webs
+- cargs.nw ::
+- columns.nw ::
+- cpif.nw ::
+
+
+**** Chapters in a larger document
+- env-lua.nw :: Lua registration of the C functions =getenv= and =putenv=.
+- errors.nw ::
+- fakepretty.nw ::
+- finduses.nw ::
+- fromascii ::
+- fu-run :: the =main= program for /finduses/.
+- getline ::
+- ipipe ::
+- ipipe-lua ::
+- lua-help ::
+- lua-main ::
+- main ::
+- markparse ::
+- markup ::
+- markup-run ::
+- match ::
+- misc-lua ::
+- mnt ::
+- modtrees ::
+- modules ::
+- mpipe ::
+- mpipe-lua ::
+- mpipe-new ::
+- notangle ::
+- noweb-lua ::
+- nt-run ::
+- nullsink ::
+- nwbuffer ::
+- nwbuffer-lua ::
+- nwmtime ::
+- nwprocess ::
+- nwtime ::
+- precompiled ::
+- pretty ::
+- recognize ::
+- stages ::
+- strsave ::
+- sys ::
+- toascii ::
+- util ::
+- xpipe ::
+- xpipe-lua :: 
+
+There's also a version of xpipe in the bugs/ subdirectory.
+
+*** Odd LaTeX files
+- luatab.nw :: Contains only a documentation chunk, and uses the ~[[...]]~ syntax.
+
+*** Confusing files
+nocond
+
+This is a sed script which should help to build Noweb 3, according to Ramsey.
+
+*** /spawn/, vendored software converted to Noweb
+
+*** DONE Notes on the src/c directory Makefile
+CLOSED: [2026-01-05 Mon 04:34]
+The C directory Makefile is organized as follows:
+1. Include nwconfig.
+2. Set =CII= and =INCS=, including /C Interfaces and Implementations/ and /Lua/.
+   1. Note that after installation of /Noweb 3/, /Noweb 3/ will be used to make "doc" for the semi-literate version of the source code.
+   2. ~"-I../../vendor/c-interfaces-and-implementations/include~"
+   3. ~"-I../../vendor/lua-5.4.8"~
+      1. During the /Lua 2.5/ era an "include" subdirectory was included, not the top level.
+         TODO understand how to include modern Lua.
+3. =NOOBJS= is a list of all object files required for the =no= target. See the ~NOOBJS~ list.
+4. =NWMTIMEOBJS= is a list of all object files required for the =nwmtime= target. See the ~NWMTIMEOBJS~ list.
+5. =FILES= is a list of files...
+6. C code is distributed alongside the noweb files, which helps with
+   bootstrapping. SRCS is a list of C code (.c and .h) which should be
+   distributed; whatever .c and .h files are generated should be members of the
+   list. A new list, =DIST= will track these files.
+7. =NAME= is unused.
+8. A metarule is used to control how all =.c.o= objects are compiled, so a new rule isn't needed for every file.
+#+begin_src makefile :noweb-ref metarule for compiling C objects
+  # metarule so you don't need a new rule for each object file
+  .c$(O):;	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS)$@ $*.c
+#+end_src
+
+There are no prerequisites for this rule, and the recipe is short so it begins
+on the same line. Therefore the syntax of this metarule is ~targets : prerequisites ; recipe~,
+with empty prerequisites.
+
+Automatic variables:
+-$@ the name of the target
+-$* [[https://www.gnu.org/software/make/manual/html_node/Suffix-Rules.html][an old-fashioned suffix-rule]]
+
+**** The =nwmtime= target
+***** Prerequisites are NWMTIMEOBJS
+***** =$(LD) $(LFLAGS)$@ $(NWMTIMEOBJS)=
+This rule says to link the named objects together and output the executable =nwmtime=.
+
+#+begin_src bash
+  ld -onwmtime columns.o errors.o getline.o nwmtime.o
+#+end_src
+
+**** The =no= target
+***** Prerequisites
+#+begin_src bash
+  $(NOOBJS) $(LIB3)/cii/memchk.o $(LIB3)/cii/libcii.a $(LUALIB)/liblua.a $(LUALIB)/liblualib.a
+#+end_src
+
+***** Recipe
+The expansion of various shit is like this.
+
+#+begin_src bash
+  ld -ono $(NOOBJS) $(LIBPROLOG) $(LIB3)/cii/libcii. $(LUALIB)/liblua. $(LUALIB)/liblualib. $(LIBEPILOG)
+#+end_src
+
+LIBPROLOG is nul, and LIBEPILOG is "-lm".
+
+**** The =doc= target
+***** Prerequisites, doc.tex and allcode.tex
+- doc.tex is a copy of doc.nw
+- allcode.tex has a complex recipe
+It depends on =$(FILES)=.
+
+#+begin_src bash
+  no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > allcode.tex
+#+end_src
+***** Recipe
+=doc.tex= includes =allcode.tex= using the =input= macro.
+
+#+begin_src bash
+  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
+  pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
+  pdflatex -output-directory=$(OUTPUT) doc.tex
+#+end_src
+**** =DIST=
+DIST is a new list of C sources (.c and .h files) that must be distributed alongside the webs.
+
+- =columns.c=
+- =columns.h=
+- =cpif.c=
+- =cpif.h=
+- =env-lua.c=
+- =env-lua.h=
+- =errors.c=
+- =errors.h=
+- =finduses.c=
+- =fromascii.c=
+- =fromascii.h=
+- =getline.c=
+- =getline.h=
+- =ipipe-lua.c=
+- =ipipe-lua.h=
+- =ipipe.c=
+- =ipipe.h=
+- =lua-help.c=
+- =lua-help.h=
+- =lua-main.c=
+- =lua-main.h=
+- =main.c=
+- =markparse.c=
+- =markparse.h=
+- =markup.c=
+- =markup.h=
+- =match.c=
+- =match.h=
+- =misc-lua.c=
+- =misc-lua.h=
+- =modtrees.c=
+- =modtrees.h=
+- =modules.c=
+- =modules.h=
+- =mpipe-lua.c=
+- =mpipe-lua.h=
+- =mpipe.c=
+- =mpipe.h=
+- =notangle.c=
+- =notangle.h=
+- =noweb-lua.c=
+- =noweb-lua.h=
+- =nwbuffer-lua.c=
+- =nwbuffer.c=
+- =nwbuffer.h=
+- =nwmtime.c=
+- =nwprocess.c=
+- =nwprocess.h=
+- =nwtime.c=
+- =nwtime.h=
+- =precompiled.h=
+- =recognize.c=
+- =recognize.h=
+- =stages.c=
+- =stages.h=
+- =strsave.c=
+- =strsave.h=
+- =sys.c=
+- =sys.h=
+- =util.c=
+- =util.h=
+- =xpipe-lua.c=
+- =xpipe-lua.h=
+- =xpipe.c=
+- =xpipe.h=
+
+**** =FILES=
+#+begin_src lua
+  files {
+    "columns.nw",
+    "cpif.nw",
+    "errors.nw",
+    "finduses.nw",
+    "getline.nw",
+    "ipipe.nw",
+    "ipipe-lua.nw",
+    "lua-main.nw",
+    "main.nw",
+    "markparse.nw",
+    "markup.nw",
+    "match.nw",
+    "modtrees.nw",
+    "modules.nw",
+    "mpipe.nw",
+    "mpipe-lua.nw",
+    "notangle.nw",
+    "nwbuffer.nw",
+    "nwmtime.nw",
+    "nwprocess.nw",
+    "nwtime.nw",
+    "recognize.nw",
+    "strsave.nw",
+    "xpipe.nw",
+    "xpipe-lua.nw"
+  }
+#+end_src
+
+**** =NOOBJS=
+- columns
+- cpif
+- env-lua
+- errors
+- finduses
+- fromascii
+- getline
+- ipipe
+- ipipe-lua
+- lua-help
+- lua-main
+- main
+- markparse
+- markup
+- misc-lua
+- modtrees
+- modules
+- mpipe
+- mpipe-lua
+- notangle
+- noweb-lua
+- nwbuffer
+- nwbuffer-lua
+- nwprocess
+- nwtime
+- recognize
+- stages
+- strsave
+- sys
+- util
+- xpipe
+- xpipe-lua
+
+**** =NWMTIMEOBJS=
+- columns
+- errors
+- getline
+- nwmtime
+
+** Premake5 Lua for building =no= and =nwmtime=
+This subtree contains a source block that was formerly an independent Premake5
+Lua script in the C source subdirectory.
+
+*** Premake5 Lua script
+This Premake script is quite complete, if not finished. Test it a few times.
+
+#+begin_src lua :noweb-ref "Rammel"
+  -- workspace "Rammel"
+  --     configurations { "Debug", "Release" }
+  --     kind "SharedLib"
+  --     language "C"
+  --     targetdir "bin/%{cfg.buildcfg}"
+  --     location "build"
+  -- filter "system:Windows"
+  --     system "windows"
+  -- filter "system:linux"
+  --     system "linux"
+
+#+end_src
+
+Sub-projects of Rammel must have their c or h files tangled before they can be
+built, so each of these are regenerated before the project is defined. To
+regenerate these files a very handsome little Lua function was written to tangle
+these given a table and some optional arguments.
+
+#+begin_src lua :noweb-ref "Rammel"
+  -- tangle_c_or_h_file("example") :: notangle example.nw > example.c# tangle the default * module.
+  function tangle_c_or_h_file (noweb_file_basename, root, of, mode, tangleopts)
+    if not root and not of then
+      of = path.join("../src/c", string.format("%s.c", noweb_file_basename))
+      if not path.iscfile(of) then printf("Path: %s is erroneously not a C file!", of) end
+    end
+    if not of then
+      of = path.join("../src/c", string.format("%s.h", noweb_file_basename))
+      if not path.iscppheader(of) then printf("Path: %s is erroneously not an H file!", of) end
+    end
+
+    --[[In one call the noweb_file_basename is actually an absolute path.
+    "If trailing is an absolute path, then the leading portion is ignored, and the
+    absolute path is returned instead (see below for examples)."]]
+    noweb_file = path.join("../src/c", noweb_file_basename)
+    if not path.isabsolute(noweb_file) then
+      --[[When noweb_file is contstructed from a real basename, the noweb_file
+      must be given an extension.]]
+      noweb_file = path.replaceextension(noweb_file, "nw")
+    end
+
+    if root then
+      root = string.format("-R\"%s\"", root)
+    else
+      root = ""
+    end
+    if not mode then
+      mode = ">"
+    else-- I only ever use "a+" to indicate that I intend to append.
+      mode = ">>"
+    end
+
+    if not tangleopts then tangleopts = "" end
+
+    cmd = string.format([[notangle %s %s -L"#line %%L "\"%s.nw"\"%%N" %s %s %s]],
+      noweb_file,
+      tangleopts,
+      noweb_file_basename,
+      root,
+      mode,
+      of)
+    verbosef("    %s", cmd)
+    os.execute(cmd)
+  end
+  verbosef("Generating sources with bundled Noweb (version 2)...")
+#+end_src
+
+Tangle the H files.
+
+#+begin_src lua :noweb-ref "Rammel"
+  for index, header in pairs({
+      "cargs",       "columns",
+      "env-lua",
+      "errors",      "fromascii",
+      "getline",     "ipipe",
+      "ipipe-lua",   "lua-help",
+      "lua-main",    "markparse",
+      "markup",      "match",
+      "misc-lua",    "modtrees",
+      "modules",     "mpipe",
+      "mpipe-lua",   "notangle",
+      "noweb-lua",   "nwbuffer",
+      "nwprocess",   "nwtime",
+      "precompiled", "recognize",
+      "stages",      "strsave",
+      "sys",         "util",
+      "xpipe",       "xpipe-lua"
+  }) do tangle_c_or_h_file(header, "header") end
+#+end_src
+
+Tangle the C files.
+
+#+begin_src lua :noweb-ref "Rammel"
+  for index, source in pairs({
+      "columns",   "cpif",
+      "errors",    "env-lua",
+      "finduses",  "fromascii",
+      "getline",   "ipipe",
+      "ipipe-lua", "lua-help",
+      "lua-main",  "main",
+      "markup",    "markparse",
+      "misc-lua",  "modtrees",
+      "modules",   "mpipe",
+      "mpipe-lua", "notangle",
+      "noweb-lua", "nwbuffer",
+      "nwprocess", "nwmtime",
+      "nwtime",    "recognize",
+      "stages",    "strsave",
+      "sys",       "util",
+      "xpipe",     "xpipe-lua"
+  }) do tangle_c_or_h_file(source) end
+#+end_src
+
+Define most of the projects.
+
+#+begin_src lua :noweb-ref "Rammel"
+  project "columns"
+  files { "../src/c/cargs.h", "../src/c/columns.c", "../src/c/columns.h" }
+  kind "SharedLib"
+
+  project "cpif"
+  files { "../src/c/cpif.c", "../src/c/errors.h", "../src/c/strsave.h" }
+  kind "SharedLib"
+
+  project "env-lua"
+  files { "../src/c/env-lua.c", "../src/c/env-lua.h", "../src/c/lua-help.h" }
+  kind "SharedLib"
+
+  project "errors"
+  files { "../src/c/errors.c", "../src/c/errors.h" }
+  kind "SharedLib"
+
+  project "finduses"
+  files { "../src/c/errors.h", "../src/c/finduses.c", "../src/c/getline.h", "../src/c/match.h", "../src/c/nwbuffer.h", "../src/c/recognize.h" }
+  kind "SharedLib"
+
+  project "fromascii"
+  files { "../src/c/errors.h", "../src/c/fromascii.c", "../src/c/fromascii.h", "../src/c/getline.h", "../src/c/nwbuffer.h" }
+  kind "SharedLib"
+
+  project "getline"
+  files { "../src/c/columns.h", "../src/c/errors.h", "../src/c/getline.c", "../src/c/getline.h" }
+  kind "SharedLib"
+
+  project "ipipe"
+  files { "../src/c/ipipe.c", "../src/c/ipipe.h", "../src/c/nwbuffer.h", "../src/c/nwtime.h" }
+  kind "SharedLib"
+
+  project "ipipe-lua"
+  files { "../src/c/ipipe-lua.c", "../src/c/ipipe-lua.h" }
+  kind "SharedLib"
+
+  project "lua-help"
+  files { "../src/c/lua-help.c", "../src/c/lua-help.h" }
+  links { "Lua2_5_1:static" }
+  kind "SharedLib"
+
+  project "lua-main"
+  files { "../src/c/env-lua.h", "../src/c/ipipe-lua.h", "../src/c/lua-main.c", "../src/c/lua-main.h", "../src/c/misc-lua.h", "../src/c/mpipe-lua.h", "../src/c/noweb-lua.h", "../src/c/stages.h", "../src/c/util.h", "../src/c/xpipe-lua.h" }
+  links { "Lua2_5_1:static" }
+  kind "SharedLib"
+
+  project "main"
+  files { "../src/c/cargs.h", "../src/c/columns.h", "../src/c/cpif.h", "../src/c/errors.h", "../src/c/main.c", "../src/c/modtrees.h", "../src/c/modules.h", "../src/c/notangle.h", "../src/c/nwbuffer.h" }
+  kind "SharedLib"
+
+  project "markparse"
+  files { "../src/c/columns.h", "../src/c/errors.h", "../src/c/getline.h", "../src/c/markparse.c", "../src/c/markparse.h", "../src/c/markup.h", "../src/c/nwbuffer.h" }
+  kind "SharedLib"
+
+  project "markup"
+  files { "../src/c/errors.h", "../src/c/markup.c", "../src/c/markup.h", "../src/c/strsave.h" }
+  kind "SharedLib"
+
+  project "misc-lua"
+  files { "../src/c/lua-help.h", "../src/c/misc-lua.c", "../src/c/misc-lua.h" }
+  kind "SharedLib"
+
+  project "modtrees"
+  files { "../src/c/errors.h", "../src/c/modtrees.c", "../src/c/modtrees.h", "../src/c/modules.h", "../src/c/strsave.h" }
+  kind "SharedLib"
+
+  project "modules"
+  files { "../src/c/columns.h", "../src/c/errors.h", "../src/c/modtrees.h", "../src/c/modules.c", "../src/c/modules.h", "../src/c/strsave.h" }
+  kind "SharedLib"
+
+  project "mpipe"
+  files { "../src/c/fromascii.h", "../src/c/ipipe.h", "../src/c/mpipe.c", "../src/c/mpipe.h", "../src/c/nwbuffer.h", "../src/c/xpipe.h" }
+  kind "SharedLib"
+
+  project "mpipe-lua"
+  files { "../src/c/lua-help.h", "../src/c/mpipe.h", "../src/c/mpipe-lua.c", "../src/c/mpipe-lua.h" }
+  kind "SharedLib"
+
+  project "notangle"
+  files { "../src/c/errors.h", "../src/c/getline.h", "../src/c/match.h", "../src/c/modtrees.h", "../src/c/modules.h", "../src/c/notangle.c", "../src/c/notangle.h", "../src/c/nwbuffer.h", "../src/c/strsave.h" }
+  kind "SharedLib"
+
+  project "noweb-lua"
+  files { "../src/c/lua-help.h", "../src/c/noweb-lua.c", "../src/c/noweb-lua.h", "../src/c/util.h" }
+  kind "SharedLib"
+
+  project "nwbuffer"
+  files { "../src/c/nwbuffer.c", "../src/c/nwbuffer.h" }
+  kind "SharedLib"
+#+end_src
+
+The generation of =nwbuffer-lua.c= in the Ramsey sources was an unnecessary
+nightmare; I originally resolved it by extending the =tangle_c_or_h_file=
+function to handle this edge case, but after patching that I realized that the
+entire situation could be avoided by using normal tangling behaviour with a
+specified root once =nwbuffer-lua.c= was added as an additional root to the file
+already containing the =key macros= module.
+
+#+begin_src lua :noweb-ref "Rammel"
+  tangle_c_or_h_file("nwbuffer", "nwbuffer-lua.c", "../src/c/nwbuffer-lua.c")
+  project "nwbuffer-lua"
+  files { "../src/c/lua-help.h", "../src/c/nwbuffer.h", "../src/c/nwbuffer-lua.c" }
+  kind "SharedLib"
+#+end_src
+
+Define the rest of the projects.
+
+#+begin_src lua :noweb-ref "Rammel"
+  project "nwmtime"
+  files { "../src/c/getline.h", "../src/c/nwmtime.c" }
+  kind "SharedLib"
+
+  project "nwprocess"
+  files { "../src/c/nwprocess.c", "../src/c/nwprocess.h" }
+  kind "SharedLib"
+
+  project "nwtime"
+  files { "../src/c/nwtime.c", "../src/c/nwtime.h" }
+  kind "SharedLib"
+
+  project "recognize"
+  files { "../src/c/recognize.c" }
+  kind "SharedLib"
+
+  project "stages"
+  files { "../src/c/cargs.h", "../src/c/fromascii.h", "../src/c/lua-help.h", "../src/c/markparse.h", "../src/c/notangle.h", "../src/c/nwbuffer.h", "../src/c/stages.c", "../src/c/stages.h" }
+  kind "SharedLib"
+
+  project "strsave"
+  files { "../src/c/errors.h", "../src/c/strsave.c", "../src/c/strsave.h" }
+  kind "SharedLib"
+
+  project "sys"
+  files { "../src/c/sys.c", "../src/c/sys.h" }
+  kind "SharedLib"
+
+  project "util"
+  files { "../src/c/precompiled.h", "../src/c/sys.h", "../src/c/util.c", "../src/c/util.h" }
+  kind "SharedLib"
+
+  project "xpipe"
+  files { "../src/c/errors.h", "../src/c/nwprocess.h", "../src/c/sys.h", "../src/c/util.h", "../src/c/xpipe.c", "../src/c/xpipe.h" }
+  kind "SharedLib"
+
+  project "xpipe-lua"
+  files { "../src/c/cargs.h", "../src/c/lua-help.h", "../src/c/xpipe.h", "../src/c/xpipe-lua.c", "../src/c/xpipe-lua.h" }
+  kind "SharedLib"
+#+end_src
+
+Define the projects which link against the previous sub-projects and vendored code.
+
+#+begin_src lua :noweb-ref "Rammel"
+  -- Vendored projects linked against are defined in ../../vendor/premake5.lua
+  project "no"
+  kind "ConsoleApp"
+  links {
+    ---[[ Vendored Static Libraries
+    "cii:static", "Lua2_5_1:static",--]]
+
+    ---[[ Tools
+    "tool-markup", "tool-nt", "tool-tie", "tool-nocond",--]]
+
+    ---[[ Objects,
+    "columns",   "cpif",
+    "env-lua",   "errors",
+    "finduses",  "fromascii",
+    "getline",   "ipipe",
+    "ipipe-lua", "lua-help",
+    "lua-main",  "main",
+    "markparse", "markup",
+    "misc-lua",  "modtrees",
+    "modules",   "mpipe",
+    "mpipe-lua", "notangle",
+    "noweb-lua", "nwbuffer",
+    "nwbuffer-", "nwprocess",
+    "nwtime",    "recognize",
+    "stages",    "strsave",
+    "sys",       "util",
+    "xpipe",     "xpipe-lua"--]]
+  }
+
+  project "nwmtime"
+  kind "ConsoleApp"
+  links {
+    "columns",
+    "errors",
+    "getline",
+    "nwmtime"
+  }
+#+end_src
+
+*** TODO Test the script in integration with the new, unified top-level Premake5 script
+

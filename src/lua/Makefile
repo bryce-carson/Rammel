@@ -1,4 +1,4 @@
-include ../nwconfig
+include ../Makefile
 
 CONFIG=	$(OUTPUT)$(P)pipes.cfg \
 	$(OUTPUT)$(P)sys.cfg \

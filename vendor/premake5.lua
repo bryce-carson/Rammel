@@ -1,15 +1,19 @@
 workspace "vendor"
-    configurations { "Debug", "Release" }
-    location "build"
-    kind "Makefile"
+configurations { "Release" }
+location "build"
 
--- TODO: rather than trying to build it myself, use the existing Makefile which
--- also supports Windows NT!
 project "CII"
+location "build/vendor/CII"
+kind "Makefile"
 
--- FIXME: testes/libs/lib22 fails to compile: -Wimplicit-function-declaration.
-project "Lua"
-    files {
-      "lua-5.4.8/**.h",
-      "lua-5.4.8/**.c"
-    }
+project "Lua 5.4.8"
+location "build/vendor/Lua5.4.8"
+kind "Makefile"
+
+project "Lua 2.5.1"
+location "build/vendor/Lua2.5.1"
+kind "Makefile"
+buildcommands {
+  -- Apply patches
+  "make %{buildcfg.cfg}"
+}

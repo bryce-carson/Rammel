@@ -1,9 +1,9 @@
 # Copyright 1991-1998 by Norman Ramsey.  All rights reserved.
 # See file COPYRIGHT for more information.
 #
-# don't edit this file; edit ../nwconfig instead
+# don't edit this file; edit ../Makefile (src/Makefile from the root directory) instead
 
-include ../nwconfig
+include ../Makefile
 
 ################################################################
 # CII is directory where you installed CII ($BUILDDIR)

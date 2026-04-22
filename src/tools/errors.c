@@ -13,37 +13,37 @@ char *progname = NULL;
 void nowebexit(char *msg) {
   if (!finalstage && errorlevel > Normal)
     printf("@fatal %s %s\n", progname != NULL ? progname : "a-noweb-filter",
-	   msg != NULL ? msg : "an unspecified error occurred");
+           msg != NULL ? msg : "an unspecified error occurred");
   exit(errorlevel);
 }
 #line 58 "errors.nw"
 void errormsg(enum errorlevel level, char *s,...) {     
-    va_list args;                       /* see K&R, page 174 */
-    va_start(args,s);
+  va_list args;                       /* see K&R, page 174 */
+  va_start(args,s);
     
 #line 79 "errors.nw"
-if (level > errorlevel)
+  if (level > errorlevel)
     errorlevel = level;
-vfprintf(stderr, s, args);
-fprintf(stderr,"\n");
+  vfprintf(stderr, s, args);
+  fprintf(stderr,"\n");
 #line 62 "errors.nw"
-    va_end(args);
-    if (level >= Fatal)
-        nowebexit(s);
+  va_end(args);
+  if (level >= Fatal)
+    nowebexit(s);
 }
 #line 69 "errors.nw"
 void errorat(char *filename, int lineno, enum errorlevel level, char *s, ...) {     
-    va_list args;                       /* see K&R, page 174 */
-    va_start(args,s);
-    fprintf(stderr, "%s:%d: ", filename, lineno);
+  va_list args;                       /* see K&R, page 174 */
+  va_start(args,s);
+  fprintf(stderr, "%s:%d: ", filename, lineno);
     
 #line 79 "errors.nw"
-if (level > errorlevel)
+  if (level > errorlevel)
     errorlevel = level;
-vfprintf(stderr, s, args);
-fprintf(stderr,"\n");
+  vfprintf(stderr, s, args);
+  fprintf(stderr,"\n");
 #line 74 "errors.nw"
-    va_end(args);
-    if (level >= Fatal)
-        nowebexit(s);
+  va_end(args);
+  if (level >= Fatal)
+    nowebexit(s);
 }

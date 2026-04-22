@@ -67,6 +67,9 @@ scripts yourself and contribute these for the benefit of the community.
   Whenever the action requested of Premake5 is not "gmake" it will complain
   about this.
 
+Rammel may also be built with Lua 2.5.1 with changes originated by Norman
+Ramsey, the version of the Lua interpreter upon which Noweb 3 was designed.
+
 <!-- Local Variables: -->
 <!-- mode: markdown -->
 <!-- End: -->
