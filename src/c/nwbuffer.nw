@@ -77,7 +77,7 @@ extern NowebPair   NowebBuffer_read   (NowebReader);
 extern void NowebBuffer_free          (T* nwbuffer);
 
 extern int  NowebBuffer_is_index(NowebKey key);
-<<header ((lua2))>>=
+<<header>>=
 extern int NowebBuffer_toascii(void * /*output file*/, NowebBuffer buf,
 			       NowebBuffer ignored);
 <<header ((lua3))>>=
@@ -402,7 +402,7 @@ void NowebBuffer_free(T* nwbuffer) {
 @ %
 The old implementation didn't set [[*nwbuffer = NULL]] (--rsc).
 @
-<<nwbuffer functions ((lua2))>>=
+<<nwbuffer functions>>=
 int NowebBuffer_toascii(void *out /*output*/, NowebBuffer in, NowebBuffer ignored) {
   FILE *fp = out;
   NowebReader rdr = NowebBuffer_reader(in);

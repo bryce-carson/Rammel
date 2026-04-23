@@ -16,6 +16,7 @@ void   NWTime_free(NWTime t);
 <<*>>=
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "nwtime.h"
 

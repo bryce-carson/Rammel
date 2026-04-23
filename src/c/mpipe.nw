@@ -15,7 +15,7 @@ stage of which runs either an external stage or an internal pipeline.
 
 This pipeline is similar in structure to the
 \nwanchorto{ipipe.html}{internal Noweb pipeline}; there are sources,
-filters, and sinks, but all are 
+filters, and sinks, but all are
 represented by the single type [[MPipe_T]].
 <<header>>=
 #ifndef MPIPE_H
@@ -34,26 +34,33 @@ typedef struct MPipe_T *MPipe_T;
 <<identity operations>>
 <<operations on completed pipeline>>
 #endif
-@ 
+@
+
 The create functions create the appropriate mixed pipeline type when passed
 an  particular stage.
+
 <<prototypes for basics>>=
 extern MPipe_T MPipe_internal (IPipe_T p);
 extern MPipe_T MPipe_external (XPipe_T p);
 extern MPipe_T MPipe_connect  (MPipe_T l, MPipe_T r);
-@ 
+@
+
 Like the internal pipe, the mixed pipe has an identity filter.
 As with all filters, it is an unchecked runtime error to run a
 pipeline consisting solely of the identity filter.
+
 <<identity operations>>=
 extern MPipe_T MPipe_identity;
-@ 
+@
+
 Once completed, a mixed pipeline may be executed, printed,  or freed from memory.
+
 <<operations on completed pipeline>>=
 extern int  MPipe_run  (MPipe_T pipe);
 extern void MPipe_print(FILE *fp, MPipe_T pipe);
 extern void MPipe_free (MPipe_T *pipe);
-@ 
+@
+
 \section{Implementation}
 <<*>>=
 #include <assert.h>
@@ -66,8 +73,10 @@ extern void MPipe_free (MPipe_T *pipe);
 <<type definitions>>
 <<functions>>
 @
+
 \subsection{Representing a pipeline}
 A mixed pipeline is either a pair, internal, or external.
+
 <<type definitions>>=
 struct MPipe_T {
   enum { PAIR, INTERNAL, EXTERNAL } type;
@@ -77,8 +86,10 @@ struct MPipe_T {
     XPipe_T x;
   } u;
 };
-@ 
+@
+
 Creation functions are obvious.
+
 <<functions>>=
 MPipe_T MPipe_internal (IPipe_T i) {
   MPipe_T p;
@@ -87,6 +98,7 @@ MPipe_T MPipe_internal (IPipe_T i) {
   p->u.i = i;
   return p;
 }
+
 <<functions>>=
 MPipe_T MPipe_external (XPipe_T x) {
   MPipe_T p;
@@ -95,8 +107,10 @@ MPipe_T MPipe_external (XPipe_T x) {
   p->u.x = x;
   return p;
 }
-@ 
+@
+
 As in the internal pipe, the identity is a cheat.
+
 <<functions>>=
 static struct MPipe_T identity;
 MPipe_T MPipe_identity = &identity;
@@ -111,7 +125,8 @@ MPipe_T MPipe_connect(MPipe_T l, MPipe_T r) {
   p->u.pair.r = r;
   return p;
 }
-@ 
+@
+
 \subsection{Rules for combining a mixed list of pipelines}
 It is the job of the execute functions to make one large external pipeline out
 of the tree of external and internal stages, and then to execute that pipeline.
@@ -124,20 +139,23 @@ And to make things really unpleasant, we'd like to avoid a whole lot
 of consing.
 
 Accordingly, we put on our ML programmers' hats and process the
-pipeline with a recursive function and 
+pipeline with a recursive function and
 accumulating parameters.
 One of the things we'll accumulate is a list of unprocessed pipelines,
 thus:
+
 <<type definitions>>=
 struct list {
   MPipe_T hd;
   struct list *tl;
 };
-@ 
+@
+
 At any moment we may be accumulating an external pipeline, the results
 of which are to be fed into an internal pipeline, the results of
 which are to be fed into whatever is left to be processed.
 Notice the following combination rules:
+
 $$
 \let\to\Rightarrow
 % l2h substitution to ==&gt;
@@ -150,54 +168,63 @@ IX&\to&X \mbox{~(odd)}\\
 II&\to&I\\
 \end{array}
 $$
+
 $I$'s combine with each other to produce more~$I$'s, but when an~$I$
 combines with an~$X$, it has to be wrapped to turn it into an~$X$.
  The wrapping is different depending on whether the~$I$ is
 the left end, the middle, or the right of its pipeline.
-<<functions ((lua2))>>=
+
+<<functions>>=
 static int ipipe_run_left  (void *internal_pipe, FILE*, FILE*);
 static int ipipe_run_middle(void *internal_pipe, FILE*, FILE*);
 static int ipipe_run_right (void *internal_pipe, FILE*, FILE*);
+
 <<functions ((lua3))>>=
 static int ipipe_run_left  (void *internal_pipe, char*, char*);
 static int ipipe_run_middle(void *internal_pipe, char*, char*);
 static int ipipe_run_right (void *internal_pipe, char*, char*);
-@ 
+@
+
 The most interesting operation is absorbing an~$I$ into the~$X$ to
-its left. 
+its left.
 We need to say whether the~$I$ is the end of its pipeline so we know
 how to wrap it.
 Note an~$I$ can't be at both the right and left of the pipeline; if it
 were, it would be a purely internal pipeline, and we shouldn't be
 externalizing it.
+
 <<functions>>=
 static XPipe_T combine_XI(XPipe_T l, IPipe_T r, int r_is_last);
 static XPipe_T combine_XI(XPipe_T l, IPipe_T r, int r_is_last) {
   XPipe_T x;
-<<functions ((lua2))>>=
+
+<<functions>>=
   int (*wrapper)(void *, FILE*, FILE*);
+
 <<functions ((lua3))>>=
   int (*wrapper)(void *, char*, char*);
-<<functions>>=
 
+<<functions>>=
   if (l) wrapper = r_is_last ? ipipe_run_right : ipipe_run_middle;
   else   wrapper = (assert(!r_is_last), ipipe_run_left);
   x = XPipe_function(wrapper, r, "<wrapped internal pipeline>");
   if (l) x = XPipe_connect(l, x);
   return x;
 }
-@ 
+@
+
 The accumulating parameters [[ext]] and [[ints]] represent $X$~and~$I$.
 Either but not both can be empty, so they can represent initial~$X$,
 initial~$I$, or initial~$XI$, followed by [[pipeline]].
 As with all pipelines, the [[pipeline]] tree represents its leaves in
 left-to-right order, but here we can't simply use recursion, because
 we've got to implement those combination rules.
-So pairs at the head of [[pipeline]] are repeatedly rewritten by 
+So pairs at the head of [[pipeline]] are repeatedly rewritten by
 $(l,r)::\mathit{tail} \rightarrow l::r::\mathit{tail}$ until the
 pipeline begins with an~$X$ or an~$I$.
 We then fold it in with the initial thing and continue, until
 [[pipeline]] is empty.
+
 <<functions>>=
 static int do_run(XPipe_T ext, IPipe_T ints, struct list *pipeline);
 static int do_run(XPipe_T ext, IPipe_T ints, struct list *pipeline) {
@@ -215,22 +242,23 @@ static int do_run(XPipe_T ext, IPipe_T ints, struct list *pipeline) {
           return do_run(ext, IPipe_connect(ints, pipeline->hd->u.i), pipeline->tl);
         else  /* XI => XI  or  initial I */
           return do_run(ext, pipeline->hd->u.i, pipeline->tl);
-      case EXTERNAL: 
+      case EXTERNAL:
         if (ints) { /* XIX => X  or  IX => X */
-	  return do_run(XPipe_connect(combine_XI(ext, ints, 0), pipeline->hd->u.x),
-			(IPipe_T)0, pipeline->tl);
-	} else if (ext) { /* XX => X */
+    return do_run(XPipe_connect(combine_XI(ext, ints, 0), pipeline->hd->u.x),
+      (IPipe_T)0, pipeline->tl);
+  } else if (ext) { /* XX => X */
           return do_run(XPipe_connect(ext, pipeline->hd->u.x), ints, pipeline->tl);
-	} else { /* initial X */
+  } else { /* initial X */
           return do_run(pipeline->hd->u.x, ints, pipeline->tl);
-	}
+  }
       default: assert(0); return -1;
     }
   } else {
     <<run [[ext]] followed by [[ints]]>>
   }
 }
-@ 
+@
+
 One the pipeline is empty, we run [[ext]] followed by [[ints]].
 (This is easy if either is empty.)
 
@@ -238,25 +266,30 @@ It's not entirely clear to me if we should run the external pipeline on
 [[stdin]] and [[stdout]], as shown here,
  or whether [[lua_infile]] and [[lua_outfile]]
 would be better.
+
 <<run [[ext]] followed by [[ints]]>>=
 /*fprintf(stderr, "Running in mpipe with ext = %p, ints = %p\n", ext, ints); fflush(stderr);*/
 if (!ext)
   return IPipe_run(ints, NULL, NULL);
 else if (!ints)
-<<run [[ext]] followed by [[ints]] ((lua2))>>=
-  return XPipe_run(ext, stdin, stdout); 
+
+<<run [[ext]] followed by [[ints]]>>=
+  return XPipe_run(ext, stdin, stdout);
 else
   return XPipe_run(combine_XI(ext, ints, 1), stdin, stdout);
+
 <<run [[ext]] followed by [[ints]] ((lua3))>>=
   return XPipe_run(ext);
 else
   return XPipe_run(combine_XI(ext, ints, 1));
-@ 
+@
+
 An internal pipeline should be preceded by \texttt{fromascii},
 unless it's at the left end of the full pipeline.
 Similarly, it should be followed by \texttt{toascii}, unless it's at
 the right end of the full pipeline.
-<<functions ((lua2))>>=
+
+<<functions>>=
 static int ipipe_run (int left, int right, IPipe_T p, FILE *in, FILE *out) {
   if (!left)  p = IPipe_connect(IPipe_stage("fromascii", readascii, in), p);
   if (!right) p = IPipe_connect(p, IPipe_stage("toascii", NowebBuffer_toascii, out));
@@ -272,6 +305,7 @@ static int ipipe_run_middle(void *p, FILE *in, FILE *out) {
 static int ipipe_run_right(void *p, FILE *in, FILE *out) {
   return ipipe_run(0, 1, p, in, out);
 }
+
 <<functions ((lua3))>>=
 static int ipipe_run (int left, int right, IPipe_T p, char *in, char *out) {
   if (!left)  p = IPipe_connect(IPipe_stage("fromascii", readascii, in), p);
@@ -288,8 +322,10 @@ static int ipipe_run_middle(void *p, char *in, char *out) {
 static int ipipe_run_right(void *p, char *in, char *out) {
   return ipipe_run(0, 1, p, in, out);
 }
-@ 
+@
+
 The files for I/O are bound too early here.
+
 <<functions>>=
 extern int  MPipe_run  (MPipe_T pipe) {
   struct list cell;
@@ -297,27 +333,28 @@ extern int  MPipe_run  (MPipe_T pipe) {
   cell.tl = NULL;
   return do_run(NULL, NULL, &cell);
 }
-@ 
+@
+
 \subsection{Printing a pipeline}
+
 <<functions>>=
 static void print(FILE *fp, MPipe_T p) {
   switch(p->type) {
-    case PAIR: 
+    case PAIR:
       print(fp, p->u.pair.l);
       fprintf(fp, "\n| ");
       print(fp, p->u.pair.r);
       return;
-    case INTERNAL: 
+    case INTERNAL:
       IPipe_print(fp, p->u.i);
       return;
-    case EXTERNAL: 
+    case EXTERNAL:
       XPipe_print(fp, p->u.x);
       return;
   }
-}    
+}
+
 void MPipe_print(FILE *fp, MPipe_T pipe) {
   fprintf(fp, "# warning -- this is FYI only and will not reproduce the pipeline\n  ");
   print(fp, pipe);
 }
- 
-

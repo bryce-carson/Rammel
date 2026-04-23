@@ -22,7 +22,7 @@ C.
 <<XPipe-program>>
 <<XPipe-connect>>
 <<XPipe-print>>
-<<XPipe-execute ((lua2))>>
+<<XPipe-execute>>
 <<XPipe-free>>
 <<Lua registration of functions>>
 
@@ -165,7 +165,7 @@ checks that exactly one parameter is passed to it, then translates
 that lua parameter into a C [[XPipe]] and passes that to the C
 version of [[XPipe_execute]].
 
-<<XPipe-execute ((lua2))>>=
+<<XPipe-execute>>=
 extern FILE *lua_infile, *lua_outfile;
 static void XPipe_execute_lua(void) {
   lua_Object pipeline_o = lua_getparam(1);

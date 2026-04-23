@@ -61,7 +61,7 @@ extern int fileno(FILE *);  /* needed on linux ?! */
 #define T XPipe_T
 typedef struct T* T;
 
-<<header ((lua2))>>=
+<<header>>=
 extern T    XPipe_function     (int (*f)(void *cl, FILE *in, FILE *out), void *cl,
                                 char *name);
 <<header ((lua3))>>=
@@ -71,7 +71,7 @@ extern T    XPipe_function     (int (*f)(void *cl, char *inname, char *outname),
 extern T    XPipe_program      (char* path, char** argv, char** envp);
 extern T    XPipe_connect      (T left, T right);
 extern void XPipe_print        (FILE* fp, T pipeline);
-<<header ((lua2))>>=
+<<header>>=
 extern int  XPipe_run      (T pipeline, FILE *in, FILE *out);
 <<header ((lua3))>>=
 extern int  XPipe_run      (T pipeline);
@@ -105,7 +105,7 @@ struct XPipe_Program {
   char** envp;
 };
 struct XPipe_Function {
-<<definition of [[struct XPipe_Stage]] ((lua2))>>=
+<<definition of [[struct XPipe_Stage]]>>=
   int (*f)(void *, FILE *in, FILE *out);
 <<definition of [[struct XPipe_Stage]] ((lua3))>>=
   int (*f)(void *, char *inname, char *outname);
@@ -176,7 +176,7 @@ T XPipe_program(char* path, char** argv, char** envp) {
   new_pipeline->stages = List_list(new_stage, NULL);
   return new_pipeline;
 }
-<<common functions ((lua2))>>=
+<<common functions>>=
 T XPipe_function(int (*f)(void *, FILE *in, FILE *out), void *arg, char *name) {
 <<common functions ((lua3))>>=
 T XPipe_function(int (*f)(void *, char *inname, char *outname), void *arg, char *name) {
@@ -597,13 +597,13 @@ Also useful for debugging!
 #endif
 @ 
 We walk a list of stages with input and output files given.
-<<private temporary-file prototypes ((lua2))>>=
+<<private temporary-file prototypes>>=
 static int do_stage (XPipe_Stage stage, FILE *in, FILE *out);
 static int do_stages(List_T stages, FILE *in, FILE *out);
 <<private temporary-file prototypes ((lua3))>>=
 static int do_stage (XPipe_Stage stage, char *inname, char *outname);
 static int do_stages(List_T stages, char *inname, char *outname);
-<<temporary-file functions ((lua2))>>=
+<<temporary-file functions>>=
 int XPipe_run(XPipe_T pipeline, FILE *in, FILE *out) {
 #if 0
   fprintf(stderr, "tmp running "); XPipe_print(stderr, pipeline); putc('\n', stderr); fflush(stderr);
@@ -618,7 +618,7 @@ int XPipe_run(XPipe_T pipeline) {
   return do_stages(pipeline->stages, NULL, NULL);
 }
 @
-<<temporary-file functions ((lua2))>>=
+<<temporary-file functions>>=
 static int do_stages(List_T l, FILE *in, FILE *out) {
   int n;
   assert(l);
@@ -656,7 +656,7 @@ static int do_stages(List_T l, char *inname, char *outname) {
 @ 
 The leaf nodes are the stages of the pipeline; processes to execute
 these stages are called from within [[forkStageTo]].
-<<temporary-file functions ((lua2))>>=
+<<temporary-file functions>>=
 static int do_stage(struct XPipe_Stage *stage, FILE *in, FILE *out) {
   switch (stage->tag) {
     case Fun:
@@ -716,7 +716,7 @@ void PrintError(LPTSTR lpszPreface) {
   LocalFree(lpMsgBuf);
 }
 @
-<<private temporary-file prototypes ((lua2))>>=
+<<private temporary-file prototypes>>=
 static int run_program(struct XPipe_Program *prog, FILE *in, FILE *out);
 <<private temporary-file prototypes ((lua3))>>=
 static int run_program(struct XPipe_Program *prog, char *inname, char *outname);
@@ -725,7 +725,7 @@ static int run_program(struct XPipe_Program *prog, char *inname, char *outname);
 #include <sys/types.h>
 #include "sys.h"
 
-<<Unix run-program functions ((lua2))>>=
+<<Unix run-program functions>>=
 static int run_program(struct XPipe_Program *prog, FILE *in, FILE *out) {
 <<Unix run-program functions ((lua3))>>=
 static int run_program(struct XPipe_Program *prog, char *inname, char *outname) {
@@ -758,7 +758,7 @@ static int run_program(struct XPipe_Program *prog, char *inname, char *outname) 
   }
 }
 @ 
-<<Windows run-program functions ((lua2))>>=
+<<Windows run-program functions>>=
 static int run_program(struct XPipe_Program *prog, FILE *in, FILE *out) {
 <<Windows run-program functions ((lua3))>>=
 static int run_program(struct XPipe_Program *prog, char *inname, char *outname) {

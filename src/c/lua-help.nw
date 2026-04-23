@@ -96,7 +96,7 @@ extern struct Application* build_app_from_lua_args(char *funname);
   /* call to make an application from lua arguments f, arg, optional name
      funname is name of lua function (for errors) */
 #include <stdio.h>
-<<exports ((lua2))>>=
+<<exports>>=
 extern int apply_application(void *app, FILE *in, FILE *out);
 <<exports ((lua3))>>=
 extern int apply_application(void *app, char *in, char *out);
@@ -351,7 +351,7 @@ struct Application* build_app_from_lua_args(char *funname) {
   return app;
 }
 @
-<<functions ((lua2))>>=
+<<functions>>=
 extern FILE *lua_infile, *lua_outfile; /* from lua iolib.c */
 int apply_application(void *closure, FILE *in, FILE *out) {
   struct Application *a = closure;
