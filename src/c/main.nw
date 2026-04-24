@@ -4,8 +4,8 @@
 \section{Tangling}
 \subsection{Main program}
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -68,7 +68,7 @@ int notangle_sink(void *arg, NowebBuffer in, NowebBuffer out /* unused */) {
     if (errorrc) return errorrc;
     apply_each_module(remove_final_newline); /* pretty up the module texts */
     <<emit files according to [[argv]]>>
-    (void) rcsname; (void) rcsid;   /* slay warning */
+
     return errorrc;
 }
 @

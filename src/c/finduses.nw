@@ -2,8 +2,8 @@
 \section{Scanning for uses of identifiers}
 \subsection{Main program}
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +14,7 @@ static char rcsname[] = "$Name$";
 #include "recognize.h"
 #include "nwbuffer.h"
 #include "cargs.h"
-#include <atom.h>
+#include "atom.h"
 @
 These choices of alphanumerics and symbols seem to work for most languages.
 Making [[@]] alphanumeric helps {\LaTeX}, and making [[#]]

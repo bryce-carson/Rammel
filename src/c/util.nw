@@ -36,7 +36,7 @@ extern List_T pathsplit(const char *path);
 #include <string.h>
 
 #include <list.h>
-#include <atom.h>
+#include "atom.h"
 #include <fmt.h>
 #include <mem.h>
 

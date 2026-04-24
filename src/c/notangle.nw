@@ -19,8 +19,8 @@ int emit_module_named (FILE *out, char *rootname, char *locformat);
 int notangle_sink(void *arg, NowebBuffer in, NowebBuffer out);
                                             /* expects cargs structure */
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
+
+
 @
 <<*>>=
 #include <stdio.h>
@@ -41,7 +41,7 @@ static char rcsname[] = "$Name$";
 int emit_module_named (FILE *out, char *rootname, char *locformat) {
     Module root = NULL; /* ptr to root module */
 
-    (void) rcsid; (void) rcsname;  /* eliminate warning */
+
 
     root = lookup(rootname);
     <<error message and return nonzero if we couldn't find the root>>

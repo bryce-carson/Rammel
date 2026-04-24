@@ -14,9 +14,9 @@ has been.
 Some day we should hide it and give the world a function call that
 queries it.
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
-extern char *errors_rcsid (void) { return ((void) rcsname, rcsid); }
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -3,8 +3,8 @@
 <<header>>=
 const char *strsave (const char *s);     /* returns a pointer to a fresh copy of s */
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,6 +13,6 @@ static char rcsname[] = "$Name$";
 
 
 const char *strsave (const char *s) {
-    (void) rcsname; (void) rcsid;
+
     return Atom_string(s);
 }

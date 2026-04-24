@@ -51,14 +51,14 @@ Module newmodule (const char *modname) {
 }
 @ %def newmodule
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 
-#include <atom.h>
+#include "atom.h"
 
 #include "modules.h"
 #include "modtrees.h"
@@ -82,7 +82,7 @@ void add_part (Module mp, const char *s, Parttype type, Location *loc);
 void add_part (Module mp, const char *s, Parttype type, Location *loc) {
     struct modpart *p = newmodpart(type,s,loc);
     append (mp,p);
-    (void) rcsname; (void) rcsid;
+
 }
 @ %def add_part
 <<C functions>>=

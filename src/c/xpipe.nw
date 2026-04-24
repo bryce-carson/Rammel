@@ -314,7 +314,8 @@ be different for different kinds of Unix.
 <<private Unix functions>>
 <<Unix functions>>
 <<Unix run-program functions>>
-@ 
+@
+
 The pipeline structure implemented here is a tree of UNIX processes
 with leaf nodes corresponding to executable programs that are part of
 the pipeline and internal nodes corresponding to subsets of the

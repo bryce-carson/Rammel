@@ -14,8 +14,8 @@ of the length of the longest line.
 [[getline]] reuses the same internal buffers over and over, so subsequent
 calls destroy the results of previous calls.
 <<*>>=
-static char rcsid[] = "$Id$";
-static char rcsname[] = "$Name$";
+
+
 #define START_SIZE 128                  /* initial buffer size */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ void new_buffers(void) {
 }
 <<C functions>>=
 char *getline (FILE *fp) {
-    (void) rcsid; (void) rcsname;   /* prevent warnings */
+
     <<if [[buf1==NULL]], allocate initial buffers>>
     
     buf1=fgets(buf1, buf_size, fp);

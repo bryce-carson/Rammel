@@ -515,7 +515,8 @@ it can be applied as a patch to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
         case LEOP:
 
 #+end_src
-* TODO replace nwconfig and the top-level makefile with Premake5
+
+* TODO replace nwconfig and the top-level makefile with Premake5 [5/7]
 Premake5 is used to obsolete manual configuration of the build, which was
 achieved through edition of the nwconfig makefile included in the main makefile.
 
@@ -558,16 +559,14 @@ achieved through edition of the nwconfig makefile included in the main makefile.
       }
 #+end_src
 
-** TODO LIST [4/6]
+The names in the checklist below match the noweb references in the chunk above.
+
 - [X] options
 - [X] tools
 - [X] vendored Lua 2.5.1+nw
 - [X] vendored CII
-- [ ] Rammel
-- [ ] install action
-
-Rammel's premake script noweb chunk must be updated to point to source files
-relative to the new build script location (the root directory).
+- [X] Rammel :: update the premake Lua scripting in this noweb chunk to point to source files relative to the new build script location (the root directory).
+- [ ] =install= Premake5 /action/
 
 ** [options] Build-time Configuration Options
 All the options for configuring Noweb 3 are also present in Rammel,
@@ -776,7 +775,7 @@ bare-board targets when there is indeed no C library available.
 
 ** [tools, vendored, Rammel's Lua sources, Rammel's C sources, Rammel itself] Build process
 There are several actions that must be taken. These aren't analogous to the
-Premake5 conception of actions.
+Premake5 conception of /actions/.
 
 First, a bootstrapped (past-tense) version of the Noweb 2 C sources are built,
 as these are used to bootstrap Rammel (a Noweb 3-derived program). Second,
@@ -784,7 +783,7 @@ vendored shared libraries are built (/[[https://drh.github.io/cii/][Dave Hansen]
 versions 2.5.1 [with customizations] and 5.4.8). Third, the Rammel sources are
 tangled and built using the vendored libraries.
 
-*** DONE Bootstrap Rammel's build by building the Noweb 2 tools used until Rammel is built (and can rebuild itself)
+*** DONE Bootstrap Rammel's build by building the Noweb 2 tools used until Rammel is built (and can then rebuild itself)
 CLOSED: [2026-02-02 Mon 23:58]
 Bootstrap Rammel by building then installing its /tools/ in the tools
 subdirectory of the Rammel [[https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch04s07.html][libexec directory]]. The bootstrapped tools are used
@@ -940,12 +939,13 @@ make for Rammel to build.
   project "CII"
   kind "SharedLib"
   location "vendor/c-interfaces-and-implementations"
-  includedirs { "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/cii/include" }
   files { "../vendor/c-interfaces-and-implementations/src/*.c" }
   removefiles "../vendor/c-interfaces-and-implementations/**/thread*"
 #+end_src
 
-Unfortunately, this project cannot be built successfully because there are errors in the current code. I wonder what's going on?
+Unfortunately, this project cannot be built successfully because there are
+errors in the current code.
 
 *** TODO Change to the C directory and MAKE:
 The sources in the C directory are made quite simply. The following is the overall script to build the C sources.
@@ -1477,7 +1477,7 @@ This subtree was formerly an independent Org file located at =src/c/README.org=.
 - main ::
 - markparse ::
 - markup ::
-- markup-run ::
+- markup-run :: never tangled!
 - match ::
 - misc-lua ::
 - mnt ::
@@ -1734,7 +1734,6 @@ DIST is a new list of C sources (.c and .h files) that must be distributed along
 This subtree contains a source block that was formerly an independent Premake5
 Lua script in the C source subdirectory.
 
-*** Premake5 Lua script
 This Premake script is quite complete, if not finished. Test it a few times.
 
 Sub-projects of Rammel must have their c or h files tangled before they can be
@@ -1839,56 +1838,59 @@ Tangle the C files.
 Define most of the projects.
 
 #+begin_src lua :noweb-ref "Rammel"
+  --[[
   project "columns"
   files { "../src/c/cargs.h", "../src/c/columns.c", "../src/c/columns.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "cpif"
   files { "../src/c/cpif.c", "../src/c/errors.h", "../src/c/strsave.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "env-lua"
   files { "../src/c/env-lua.c", "../src/c/env-lua.h", "../src/c/lua-help.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "errors"
   files { "../src/c/errors.c", "../src/c/errors.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "finduses"
   files { "../src/c/errors.h", "../src/c/finduses.c", "../src/c/getline.h", "../src/c/match.h", "../src/c/nwbuffer.h", "../src/c/recognize.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "fromascii"
   files { "../src/c/errors.h", "../src/c/fromascii.c", "../src/c/fromascii.h", "../src/c/getline.h", "../src/c/nwbuffer.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "getline"
   files { "../src/c/columns.h", "../src/c/errors.h", "../src/c/getline.c", "../src/c/getline.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "ipipe"
   files { "../src/c/ipipe.c", "../src/c/ipipe.h", "../src/c/nwbuffer.h", "../src/c/nwtime.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "ipipe-lua"
   files { "../src/c/ipipe-lua.c", "../src/c/ipipe-lua.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
+  --]]
 #+end_src
 
 At the moment, =no= is failing to link properly because =lua-help= contains
 undefined references from the CII library, despite linking against it itself.
 
 #+begin_src lua :noweb-ref "Rammel"
+  --[[
   project "lua-help"
   if os.target() == "linux" then
     defines { "PLATFORM=\"unix\"", "nw_unix" }
@@ -1896,16 +1898,17 @@ undefined references from the CII library, despite linking against it itself.
     defines { "PLATFORM=\"nt\"", "nw_nt" }
   end
   files { "../src/c/lua-help.c" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   links {
     "lua2withnw",
     "CII"
   }
   kind "SharedLib"
+  --]]
 #+end_src
 
 #+begin_src lua :noweb-ref "Rammel"
-
+  --[[
   project "lua-main"
   if os.target() == "linux" then
     defines { "PLATFORM=\"unix\"", "nw_unix" }
@@ -1915,7 +1918,7 @@ undefined references from the CII library, despite linking against it itself.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   files { "../src/c/lua-main.c" }
   kind "SharedLib"
@@ -1923,7 +1926,7 @@ undefined references from the CII library, despite linking against it itself.
   project "main"
   includedirs {
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include",
+    "../vendor/cii/include",
     "../src/c"
   }
   files { "../src/c/main.c", }
@@ -1932,27 +1935,27 @@ undefined references from the CII library, despite linking against it itself.
 
   project "markparse"
   files { "../src/c/columns.h", "../src/c/errors.h", "../src/c/getline.h", "../src/c/markparse.c", "../src/c/markparse.h", "../src/c/markup.h", "../src/c/nwbuffer.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "markup"
   files { "../src/c/errors.h", "../src/c/markup.c", "../src/c/markup.h", "../src/c/strsave.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "misc-lua"
   files { "../src/c/lua-help.h", "../src/c/misc-lua.c", "../src/c/misc-lua.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "modtrees"
   files { "../src/c/errors.h", "../src/c/modtrees.c", "../src/c/modtrees.h", "../src/c/modules.h", "../src/c/strsave.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "modules"
   files { "../src/c/columns.h", "../src/c/errors.h", "../src/c/modtrees.h", "../src/c/modules.c", "../src/c/modules.h", "../src/c/strsave.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "mpipe"
@@ -1960,7 +1963,7 @@ undefined references from the CII library, despite linking against it itself.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   links {
     "xpipe",
@@ -1972,23 +1975,24 @@ undefined references from the CII library, despite linking against it itself.
 
   project "mpipe-lua"
   files { "../src/c/lua-help.h", "../src/c/mpipe.h", "../src/c/mpipe-lua.c", "../src/c/mpipe-lua.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "notangle"
   files { "../src/c/errors.h", "../src/c/getline.h", "../src/c/match.h", "../src/c/modtrees.h", "../src/c/modules.h", "../src/c/notangle.c", "../src/c/notangle.h", "../src/c/nwbuffer.h", "../src/c/strsave.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "noweb-lua"
   files { "../src/c/lua-help.h", "../src/c/noweb-lua.c", "../src/c/noweb-lua.h", "../src/c/util.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
 
   project "nwbuffer"
   files { "../src/c/nwbuffer.c", "../src/c/nwbuffer.h" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   kind "SharedLib"
+  --]]
 #+end_src
 
 The generation of =nwbuffer-lua.c= in the Ramsey sources was an unnecessary
@@ -2000,21 +2004,24 @@ already containing the =key macros= module.
 
 #+begin_src lua :noweb-ref "Rammel"
   tangle_c_or_h_file("nwbuffer", "nwbuffer-lua.c", "../src/c/nwbuffer-lua.c")
+  --[[
   project "nwbuffer-lua"
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
+  includedirs { "../vendor/lua-2.5", "../vendor/cii/include" }
   files { "../src/c/lua-help.h", "../src/c/nwbuffer.h", "../src/c/nwbuffer-lua.c" }
   kind "SharedLib"
+  --]]
 #+end_src
 
 Define the rest of the projects.
 
 #+begin_src lua :noweb-ref "Rammel"
+  --[[
   project "nwmtime"
   files { "../src/c/nwmtime.c" }
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2023,7 +2030,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2033,7 +2040,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2042,7 +2049,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2051,7 +2058,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2060,7 +2067,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2069,7 +2076,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2078,7 +2085,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2087,7 +2094,7 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
 
@@ -2096,9 +2103,10 @@ Define the rest of the projects.
   includedirs {
     "../src/c",
     "../vendor/lua-2.5",
-    "../vendor/c-interfaces-and-implementations/include"
+    "../vendor/cii/include"
   }
   kind "SharedLib"
+  --]]
 #+end_src
 
 Define the projects which link against the previous sub-projects and vendored code.
@@ -2107,43 +2115,117 @@ Define the projects which link against the previous sub-projects and vendored co
   -- Vendored projects linked against are defined in ../../vendor/premake5.lua
   project "no"
   kind "ConsoleApp"
-  -- includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
-  links {
-    ---[[ Vendored Static Libraries
-    "CII", "lua2withnw",--]]
-
-    ---[[ Tools
-    "tool-markup", "tool-nt", "tool-tie", "tool-nocond",--]]
-
-    ---[[ Objects,
-    "columns",      "cpif",
-    "env-lua",      "errors",
-    "finduses",     "fromascii",
-    "getline",      "ipipe",
-    "ipipe-lua",    "lua-help",
-    "lua-main",     "main",
-    "markparse",    "markup",
-    "misc-lua",     "modtrees",
-    "modules",      "mpipe",
-    "mpipe-lua",    "notangle",
-    "noweb-lua",    "nwbuffer",
-    "nwbuffer-lua", "nwprocess",
-    "nwtime",       "recognize",
-    "stages",       "strsave",
-    "sys",          "util",
-    "xpipe",        "xpipe-lua"--]]
+  includedirs {
+    "../vendor/lua-2.5",
+    "../vendor/cii/include",
+    "../src/c"
   }
-
-  project "nwmtime"
-  defines { "POSIX=1" }
-  includedirs { "../vendor/lua-2.5", "../vendor/c-interfaces-and-implementations/include" }
-  files { "../src/c/nwmtime.c" }
-  kind "ConsoleApp"
+  files {
+    "../src/c/*.c",
+    "../vendor/cii/src/*.c"
+  }
+  removefiles {
+    "../src/c/nwmtime.c",
+    "../vendor/cii/src/mem.c"
+  }
+  if os.target() == "linux" then
+    defines {
+      "PLATFORM=\"unix\"",
+      "nw_unix=1",
+      "POSIX=1"
+    }
+  else
+    defines {
+      "PLATFORM=\"nt\"",
+      "nw_nt",
+      "WIN32=1"
+    }
+  end
   links {
-    "columns",
-    "errors",
-    "getline"
+    --[[ Vendored Static Libraries
+    "CII", "lua2withnw",--]]
+    "lua2withnw",
+
+    --[[ Tools
+      "tool-markup", "tool-nt", "tool-tie", "tool-nocond",--]]
+
+    --[[ Objects,
+      "columns",      "cpif",
+      "env-lua",      "errors",
+      "finduses",     "fromascii",
+      "getline",      "ipipe",
+      "ipipe-lua",    "lua-help",
+      "lua-main",     "main",
+      "markparse",    "markup",
+      "misc-lua",     "modtrees",
+      "modules",      "mpipe",
+      "mpipe-lua",    "notangle",
+      "noweb-lua",    "nwbuffer",
+      "nwbuffer-lua", "nwprocess",
+      "nwtime",       "recognize",
+      "stages",       "strsave",
+      "sys",          "util",
+      "xpipe",        "xpipe-lua"--]]
   }
 #+end_src
 
-*** TODO Test the script in integration with the new, unified top-level Premake5 script
+The other executable to create is /nwmtime/, which is used to gather the
+modification time of things within a noweb pipe.
+
+#+begin_src lua :noweb-ref "Rammel"
+  project "nwmtime"
+  defines { "POSIX=1" }
+  includedirs {
+    -- "../vendor/lua-2.5",
+    "../vendor/cii/include",
+    "../src/c",
+  }
+  files {
+    "../src/c/nwmtime.c",
+    "../src/c/getline.c",
+    "../src/c/columns.c",
+    "../src/c/errors.c",
+    "../vendor/cii/src/except.c",
+    "../vendor/cii/src/assert.c",
+  }
+  kind "ConsoleApp"
+  if os.target() == "linux" then
+    defines { "PLATFORM=\"unix\"", "nw_unix" }
+  else
+    defines { "PLATFORM=\"nt\"", "nw_nt" }
+  end
+#+end_src
+
+* TODO resolve linker issue
+Linking /no/ fails because something else fails to link.
+
+#+begin_src sh :results none
+  rm -rf build
+  mkdir -p build
+#+end_src
+
+=, b t= now!
+
+#+begin_src sh :dir build :results output verbatim
+  if [ -f premake5.lua ]; then
+       premake5 gmake
+       make
+  fi
+#+end_src
+
+* Ramsey wrote =((lua2))= and =((lua3))= and =((fork))= and =((spawn))= in chunk names
+I thought these were added by Dazitzel and meant for manual selection, but I
+should've been clever enough to realize that these would've been selected by
+Make, for sure! Within Make scripts, these such chunks are selected with
+=nocond=. Dazitzel hacked out the Lua 2.5+nw sources from Ramsey's Noweb 3 and
+replaced it with a pure Lua 2.5 implementation, then wrote a Lua 3
+implementation which could be selected alternate to Lua 2.5 (both were compiled
+at the same time).
+
+To build this software I'll need to undo the changes I made to the noweb sources
+which removed the =((lua2))= specifiers, and any other double parenthesis
+specifiers.
+
+- [ ] Restore the chunk names as in Dazitzel's last commit.
+- [ ] Restore the Makefiles as in Dazitzel's last commit.
+- [ ] Translate the necessary make calls into custom build commands to prepare sources for Rammel with Lua 2.5, and Rammel with +Lua 3+ Lua 5.
