@@ -90,6 +90,17 @@ that commit message I thought Norman was referring to the changes made to Lua
 changes, however; regardless, the diff lives here and is useful to have because
 it can be applied as a patch to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
 
+Five months or more since I wrote that paragraph, I realize that Dazitzel
+already excised the customizations to Lua 2.5 that Ramsey made to facilitate the
+original implementation of Noweb 3. Dazitzel replaced the customized version of
+Lua 2.5 with the upstream Lua 2.5 and excised all the Lua 2.5 script which
+required those customizations, replacing them with equivalent standard Lua.
+Dazitzel also wrote Lua 3 versions of some or all Lua scripts, so Dazitzel's
+existing work has saved me countless hours of learning, research, and work; Lua
+3 is also closer to Lua 5, not just in version number, but if I recall there
+were major changes when Lua 3 was released which will make the eventual
+transition to Lua 5 easier.
+
 #+name: patch
 #+begin_src diff :tangle src/lua-2.5.1-inout.c.patch
   --- /tmp/lua/inout.c	2025-11-18 17:54:06.123407721 -0700
