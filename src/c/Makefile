@@ -1,17 +1,15 @@
 # Copyright 1991-1998 by Norman Ramsey.  All rights reserved.
 # See file COPYRIGHT for more information.
 #
-# don't edit this file; edit ../Makefile (src/Makefile from the root directory) instead
+# don't edit this file; edit ../nwconfig instead
 
-include ../Makefile
+include ../nwconfig
 
 ################################################################
 # CII is directory where you installed CII ($BUILDDIR)
 
 CII=../cii
 
-# src/vendor/c-interfaces-and-implementations/include
-# src/vendor/lua/include
 INCS=-I$(CII)$(P)include -I$(LUA)$(P)include
 
 # after installation, make doc for literate version

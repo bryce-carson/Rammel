@@ -2139,14 +2139,21 @@ To build this software I'll need to undo the changes I made to the noweb sources
 which removed the =((lua2))= specifiers, and any other double parenthesis
 specifiers.
 
-- [ ] Restore the implementation specifiers in chunk names.
-- [ ] Restore the Makefiles as in Dazitzel's last commit.
-- [ ] Translate the relevant make rules into premake5 custom build commands to generate sources for Rammel with Lua 2.5.1 and Lua 3.2.
-- [ ] Resurrect the vendored sources of Lua 3.
+- [X] Restore the implementation specifiers in chunk names.
+- [X] Resurrect the vendored sources of Lua 3.
 
 Translating from Lua 3.2 to Lua 5.5 will be much easier because of the tag
 method feature introduced in Lua 3.0, which replaced fallbacks. The reason this
 will be easier is because Lua 5.0 replaced tags and tag methods with metatables.
+
+- [X] Restore the Makefiles as in Dazitzel's last commit.
+
+Honestly, looking at the commit history limited to Makefile and nwconfig is
+really confusing; it is easier to manually restore these files from another copy
+if I really want them. However, I have a copy of one of the relevant makefiles
+in this TODO already.
+
+- [ ] Translate the relevant make rules into premake5 custom build commands to generate sources for Rammel with Lua 2.5.1 and Lua 3.2.
 
 ** Correct a failure to link =no=                                   :ARCHIVE:
 Linking /no/ fails because the version specifiers in chunk names were not handled correctly.
