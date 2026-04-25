@@ -44,10 +44,10 @@ pipeline stages are implemented in Lua, rather than Icon. I don't want to learn
 Icon to hack on noweb version 2 filters, and it really isn't ideal to implement
 advanced customizations or hacks in AWK.
 
-* Lua 2.5.1
+* Lua 2.5.1                                                         :ARCHIVE:
 This section is about the Lua 2.5.1 sources.
 
-** Building Lua 2.5.1 with Ramsey's original makefile requires RCS  :ARCHIVE:
+** Building Lua 2.5.1 with Ramsey's original makefile requires RCS
 A long while ago I wrote, "the build seemed to fail without RCS installed." I
 believe now I was referring to the targets in the makefile, which makes sense; I
 recall that these interact with RCS because they checkin and checkout sources as
@@ -858,55 +858,9 @@ CLOSED: [2026-02-01 Sun 23:51]
   end
 #+end_src
 
-*** Vendored
-**** DONE MAKE Lua 2.5.1+nw and install it in $(LIB3)/lua-2.5 according to LuaMakefile
-CLOSED: [2026-02-03 Tue 00:53]
-/Lua 2.5.1+nw/ is Lua 2.5.1 with changes supporting the implementation of Noweb 3, what Rammel is derived from.
-
-See [[*=diff= of Norman's lua-2.5+nw and Lua 2.5.1][=diff= of Norman's lua-2.5+nw and Lua 2.5.1]].
-
-It's necessary to patch the Lua 2.5.1 sources with a patch I created, and also a
-patch generated with diff to add Ramsey's customizations to Lua 2.5.1.
-
-#+begin_src lua :noweb-ref vendored lua2 with extensions
-  project "patch_lua"
-  kind "Utility"
-  buildcommands {
-    -- Apply patches
-    "patch -d %{cfg.buildtarget.abspath}/../vendor/lua-2.5 <../src/0001-luamem.patch",
-    "patch -d %{cfg.buildtarget.abspath}/../vendor/lua-2.5 <../src/0002-lua-nw-inout.c.patch",
-  }
-#+end_src
-
-Lua 2.5.1 can then be built.
-
-#+begin_src lua :noweb-ref vendored lua2 with extensions
-  project "lua2withnw"
-  kind "SharedLib"
-  includedirs { "../vendor/lua-2.5" }
-  files {
-    "../vendor/lua-2.5/*.c"
-  }
-  removefiles {
-    "../vendor/lua-2.5/y.tab.c"
-  }
-  links { "patch_lua" }
-#+end_src
-
-***** TODO Apply patches to Lua 2.5.1 [1/2]
-When building Rammel with Lua 2.5.1 it will need some patching before building,
-and require additional software on the build machine. How do I require CVS on
-the build machine?
-
-- [X] Patch
-- [ ] Require CVS
-
-**** DONE CII
-CLOSED: [2026-04-23 Thu 00:54]
-Hansen's CII already includes an NT-compatible makefile, so rather than
-expending effort to convert the existing makefiles for Windows (NT) and for UNIX
-into a Premake lua_script I will just call the respective make file, and require
-make for Rammel to build.
+*** DONE Build the selected sources of CII
+CLOSED: [2026-04-25 Sat 01:04]
+CII must be built using a generated makefile, as there is no upstream makefile to defer to.
 
 #+begin_src lua :noweb-ref vendored CII
   project "CII"
