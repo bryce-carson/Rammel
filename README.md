@@ -1,14 +1,16 @@
+<!-- -*- mode: markdown; -*- -->
 Rammel is:
 
 > *Noweb 3* with a lot of changes; and
 >
-> © 2025 Bryce Carson.
+> © 2026 Bryce Carson.
 
 Rammel is a copyrighten work derived from
-[Norman Ramsey's Noweb](https://github.com/nrnrnr/noweb3),
-version three (the Lua version), a copyrighten work.
-Noweb is available free for any use in any field of endeavor. The *original
-`COPYRIGHT` file **contents*** of Norman Ramsey's Noweb 3 are quoted below;
+[Norman Ramsey's *noweb* version 3](https://github.com/nrnrnr/noweb3),
+a copyrighten work.
+
+Rammel is available free for any use in any field of endeavor. The *original
+`COPYRIGHT` file **contents*** of Norman Ramsey's noweb version 3 are quoted below;
 Rammel is a derivative work with its own name, so the COPYRIGHT file needn't be
 retained, only the notice below.
 
@@ -45,16 +47,16 @@ You are given permission to use Rammel similarly.
 
 Rammel uses:
 
-- *Lua 5.4.8*;
-- *C Interfaces and Implementations*;
+- any of **PUC Rio's** *Lua 2.5.1*, *Lua 3.2*, or *Lua 5.4.8*;
+- select interfaces and implementations from **Dave Hanson's** *C Interfaces and Implementations*;
 - *Premake5*;
 - *GNU Make*.
 
-Compatible Make implementations may function, but aren't supported.
+Compatible Make implementations (like nmake) may function, but aren't supported.
 
 A *TODO* file is maintained in Org syntax, so using Emacs to interact with Rammel,
 in general, is preferred. The *docs* directory contains documents that existed
-within the Noweb 3 sources, from which Rammel is directly inherited from (using
+within the noweb version 3 sources, from which Rammel is directly inherited from (using
 Git); this may disappear in the future.
 
 Building Rammel requires GNU Make, as the effort required to conver the
@@ -67,9 +69,8 @@ scripts yourself and contribute these for the benefit of the community.
   Whenever the action requested of Premake5 is not "gmake" it will complain
   about this.
 
-Rammel may also be built with Lua 2.5.1 with changes originated by Norman
-Ramsey, the version of the Lua interpreter upon which Noweb 3 was designed.
-
-<!-- Local Variables: -->
-<!-- mode: markdown -->
-<!-- End: -->
+Rammel may also be built with Lua 2.5.1, Lua 3.2, or Lua 5.5. The work of
+converting the Lua filters and stages of noweb version 3 from the custom version
+of Lua 2.5 (lua2.5+nw) to standard Lua 2.5 and also to standard Lua 3 is thanks
+to the effort of David Zitzelsberger (GitHub user @dazitzel). Rammel is derived
+from Zitzelsberger's fork.
