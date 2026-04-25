@@ -173,8 +173,7 @@ $I$'s combine with each other to produce more~$I$'s, but when an~$I$
 combines with an~$X$, it has to be wrapped to turn it into an~$X$.
  The wrapping is different depending on whether the~$I$ is
 the left end, the middle, or the right of its pipeline.
-
-<<functions>>=
+<<functions ((lua2))>>=
 static int ipipe_run_left  (void *internal_pipe, FILE*, FILE*);
 static int ipipe_run_middle(void *internal_pipe, FILE*, FILE*);
 static int ipipe_run_right (void *internal_pipe, FILE*, FILE*);
@@ -197,8 +196,7 @@ externalizing it.
 static XPipe_T combine_XI(XPipe_T l, IPipe_T r, int r_is_last);
 static XPipe_T combine_XI(XPipe_T l, IPipe_T r, int r_is_last) {
   XPipe_T x;
-
-<<functions>>=
+<<functions ((lua2))>>=
   int (*wrapper)(void *, FILE*, FILE*);
 
 <<functions ((lua3))>>=
@@ -272,9 +270,8 @@ would be better.
 if (!ext)
   return IPipe_run(ints, NULL, NULL);
 else if (!ints)
-
-<<run [[ext]] followed by [[ints]]>>=
-  return XPipe_run(ext, stdin, stdout);
+<<run [[ext]] followed by [[ints]] ((lua2))>>=
+  return XPipe_run(ext, stdin, stdout); 
 else
   return XPipe_run(combine_XI(ext, ints, 1), stdin, stdout);
 
@@ -288,8 +285,7 @@ An internal pipeline should be preceded by \texttt{fromascii},
 unless it's at the left end of the full pipeline.
 Similarly, it should be followed by \texttt{toascii}, unless it's at
 the right end of the full pipeline.
-
-<<functions>>=
+<<functions ((lua2))>>=
 static int ipipe_run (int left, int right, IPipe_T p, FILE *in, FILE *out) {
   if (!left)  p = IPipe_connect(IPipe_stage("fromascii", readascii, in), p);
   if (!right) p = IPipe_connect(p, IPipe_stage("toascii", NowebBuffer_toascii, out));

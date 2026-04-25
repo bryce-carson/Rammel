@@ -20,7 +20,7 @@ This file contains Lua registration of the C functions [[getenv]] and
 <<getenv>>
 <<putenv>>
 <<abort>>
-<<functions>>
+<<functions ((lua2))>>
 <<Lua registration of functions>>
 @
 
@@ -57,7 +57,7 @@ static void abort_lua(void) {
   abort();
 }
 
-<<functions>>=
+<<functions ((lua2))>>=
 static void fflush_lua(void) {
   lua_Object var;
   int rc;
