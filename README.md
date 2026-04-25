@@ -47,7 +47,7 @@ You are given permission to use Rammel similarly.
 
 Rammel uses:
 
-- any of **PUC Rio's** *Lua 2.5.1*, *Lua 3.2*, or *Lua 5.4.8*;
+- any of **PUC Rio's** *Lua 2.5.1*, *Lua 3.2*, or *Lua 5.5*;
 - select interfaces and implementations from **Dave Hanson's** *C Interfaces and Implementations*;
 - *Premake5*;
 - *GNU Make*.
