@@ -2153,6 +2153,7 @@ really confusing; it is easier to manually restore these files from another copy
 if I really want them. However, I have a copy of one of the relevant makefiles
 in this TODO already.
 
+* Include ~nocond lua2~ or ~nocond lua3~ in custom build commands
 - [ ] Translate the relevant make rules into premake5 custom build commands to generate sources for Rammel with Lua 2.5.1 and Lua 3.2.
 
 ** Correct a failure to link =no=                                   :ARCHIVE:
