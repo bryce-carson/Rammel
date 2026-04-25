@@ -1,34 +1,18 @@
 #+TITLE: Rammel
 #+AUTHOR: Bryce Carson
 
-* What is going on in this TODO file? :note:readme:
-The directories or conceptual objects which need to be built are as follows:
+* About
+It's my goal to edify myself by translating into Lua 5.5 the filters and stages
+which were previously translated by Zitzelsberger from lua2.5+nw into Lua 3.
 
-- C
-- Lua
-- Tools
-- Vendored
-- Rammel
+I will be calling this derived work Rammel. In the future, especially if all
+development goals are met, I'll send Ramsey another postcard to ask about
+calling it noweb and getting the changes merged.
 
-The order in which they need to be built is different, however. That order is:
-
-1. Tools
-2. Vendored
-3. Lua
-4. C
-5. Rammel
-
-This TODO file is not documentation for future readers, but it might be
-interesting to an immortal historian, one studying novice software development
-efforts or a historian of literate programming. For all others, this is merely
-the workfile for myself in which I am creating the Premake5 script to build
-Rammel, and where I am taking notes as I learn about the architecture of Noweb 3
-and hack it into what Rammel is to become.
-
-* Noweb 3 uses a customized version of Lua 2.5.1 :note:readme:
-The introductory content of the Noweb 3 README describes what Noweb 3 is, in
-brief, and why it uses Lua but also has some cautionary content about the
-futility of maintaining Noweb 3.
+** Noweb 3 uses a customized version of Lua 2.5.1               :note:readme:
+The introductory content of the noweb version 3 README describes what noweb
+version 3 is, in brief, and why it uses Lua. It also has some cautionary content
+about the futility of maintaining noweb version 3.
 
 #+begin_quote
 This is Noweb 3.  Noweb 3 is a reimplementation of Noweb using
@@ -55,23 +39,12 @@ alpha980616.  This alpha version is made available from github
 (nrnrnr/noweb3) so that those who wish to play with Noweb 3 can do so.
 #+end_quote
 
-Ironically, building Noweb 3 is more difficult than building Noweb 2. Once Noweb
-2 is available, which it must be to bootstrap Noweb 3 despite Noweb 3 containing
-a minimal subset of Noweb 2 for tangling, modern hardware makes the speed
-considerations of Noweb 2 inconsequential, as Ramsey states. The reason I am
-interested in Noweb 3 is because many filters are implemented in Lua, rather
-than Icon. I don't want to learn Icon to hack on Noweb 2 filters, and it really
-isn't ideal to implement advanced customizations or hacks in AWK, despite that
-language being incredibly well-documented, a language I already know, and a
-language for which I have a print manual!
+The reason I am interested in noweb version 3 is because (all?) filters and
+pipeline stages are implemented in Lua, rather than Icon. I don't want to learn
+Icon to hack on noweb version 2 filters, and it really isn't ideal to implement
+advanced customizations or hacks in AWK.
 
-It's my goal to be the person to rewrite Noweb 3 in Lua 5+, renaming it as
-Rammel because the significant time investment merits credit on that part as
-well as the demands of the original COPYRIGHT, which are a little at odds with
-another LICENSE indicated in some sources or another version of Noweb 3. I'll
-write to Ramsey and ask about calling it Noweb 3, but I'd rather stick with the
-Rammel name at this point.
-
+* Lua 2.5.1
 ** Building Lua 2.5.1 requires patches
 The source files "luamem.h" and "luamem.c" exist in the source repository for
 Lua 2.5.1, but all other sources refer to "mem.h" and "mem.c"; the other sources
@@ -2207,8 +2180,33 @@ modification time of things within a noweb pipe.
   end
 #+end_src
 
-* TODO resolve linker issue
-Linking /no/ fails because something else fails to link.
+* TODO Resurrect =((lua2))= and any other doubly parenthesized specifiers in chunk names
+The build system must use =nocond= to target specific implementations.
+
+Ramsey wrote =((lua2))= and =((lua3))= and =((fork))= and =((spawn))= in chunk
+names. I thought these were added by Dazitzel and meant for manual selection,
+but I should've been clever enough to realize that these would've been selected
+by Make, for sure! Within Make scripts, these such chunks are selected with
+=nocond=. Dazitzel hacked out the Lua 2.5+nw sources from Ramsey's Noweb 3 and
+replaced it with a pure Lua 2.5 implementation, then wrote a Lua 3
+implementation which could be selected alternate to Lua 2.5 (both were compiled
+at the same time).
+
+To build this software I'll need to undo the changes I made to the noweb sources
+which removed the =((lua2))= specifiers, and any other double parenthesis
+specifiers.
+
+- [ ] Restore the implementation specifiers in chunk names.
+- [ ] Restore the Makefiles as in Dazitzel's last commit.
+- [ ] Translate the relevant make rules into premake5 custom build commands to generate sources for Rammel with Lua 2.5.1 and Lua 3.2.
+- [ ] Resurrect the vendored sources of Lua 3.
+
+Translating from Lua 3.2 to Lua 5.5 will be much easier because of the tag
+method feature introduced in Lua 3.0, which replaced fallbacks. The reason this
+will be easier is because Lua 5.0 replaced tags and tag methods with metatables.
+
+** Correct a failure to link =no=                                   :ARCHIVE:
+Linking /no/ fails because the version specifiers in chunk names were not handled correctly.
 
 #+begin_src sh :results none
   rm -rf build
@@ -2223,20 +2221,3 @@ Linking /no/ fails because something else fails to link.
        make
   fi
 #+end_src
-
-* Ramsey wrote =((lua2))= and =((lua3))= and =((fork))= and =((spawn))= in chunk names
-I thought these were added by Dazitzel and meant for manual selection, but I
-should've been clever enough to realize that these would've been selected by
-Make, for sure! Within Make scripts, these such chunks are selected with
-=nocond=. Dazitzel hacked out the Lua 2.5+nw sources from Ramsey's Noweb 3 and
-replaced it with a pure Lua 2.5 implementation, then wrote a Lua 3
-implementation which could be selected alternate to Lua 2.5 (both were compiled
-at the same time).
-
-To build this software I'll need to undo the changes I made to the noweb sources
-which removed the =((lua2))= specifiers, and any other double parenthesis
-specifiers.
-
-- [ ] Restore the chunk names as in Dazitzel's last commit.
-- [ ] Restore the Makefiles as in Dazitzel's last commit.
-- [ ] Translate the necessary make calls into custom build commands to prepare sources for Rammel with Lua 2.5, and Rammel with +Lua 3+ Lua 5.
