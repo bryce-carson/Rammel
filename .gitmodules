@@ -1,6 +1,3 @@
 [submodule "c-interfaces-and-implementations"]
 	path = vendor/c-interfaces-and-implementations
 	url = git@github.com:drh/cii.git
-[submodule "vendor/lua-2.5"]
-	path = vendor/lua-2.5
-	url = git@github.com:lua/lua.git

@@ -9,7 +9,7 @@ I will be calling this derived work Rammel. In the future, especially if all
 development goals are met, I'll send Ramsey another postcard to ask about
 calling it noweb and getting the changes merged.
 
-** Noweb 3 uses a customized version of Lua 2.5.1               :note:readme:
+** noweb version 3 uses a customized version of Lua 2.5.1       :note:readme:
 The introductory content of the noweb version 3 README describes what noweb
 version 3 is, in brief, and why it uses Lua. It also has some cautionary content
 about the futility of maintaining noweb version 3.
@@ -45,36 +45,29 @@ Icon to hack on noweb version 2 filters, and it really isn't ideal to implement
 advanced customizations or hacks in AWK.
 
 * Lua 2.5.1
-** Building Lua 2.5.1 requires patches
+This section is about the Lua 2.5.1 sources.
+
+** Building Lua 2.5.1 with Ramsey's original makefile requires RCS  :ARCHIVE:
+A long while ago I wrote, "the build seemed to fail without RCS installed." I
+believe now I was referring to the targets in the makefile, which makes sense; I
+recall that these interact with RCS because they checkin and checkout sources as
+part of Ramsey's release process.
+
+** Patching the upstream Lua 2.5.1 sources
+*** a note on a misnamed =#include= in the official sources
 The source files "luamem.h" and "luamem.c" exist in the source repository for
 Lua 2.5.1, but all other sources refer to "mem.h" and "mem.c"; the other sources
-were updated by the time Lua 3 was released. A patch is to be shipped with
-Rammel so Lua 2.5.1 (with the Ramsey customizations) can be built.
+were updated by the time Lua 3 was released (based off my investigation). A
+patch is to be shipped with Rammel so Lua 2.5.1 can be built.
 
-** Building Lua 2.5.1 requires RCS
-Without RCS installed the build seems to fail.
+*** a =diff= of Ramsey's /lua-2.5+nw-nw/ and Lua 2.5.1
+This diff is applicable as a patch. This section is named as it is because it is
+a diff between what I thought was lua-2.5+nw and the upstream Lua 2.5.1 sources
+I checked out from a git mirror. However, it is actually a diff of the Lua
+sources in the source tree after Zitzelsberger excised the customizations Ramsey
+made to Lua 2.5 and the upstream Lua 2.5.1 sources, so I now call this section
+=lua-2.5+nw-nw=!
 
-** =diff= of Norman's lua-2.5+nw and Lua 2.5.1
-The git log of Noweb 3 indicates that Norman lost track of the updates he made
-to Noweb 3 at one point and simply committed everything he had ("who knows what
-changes!"): a very normal occurance in software development. When I first read
-that commit message I thought Norman was referring to the changes made to Lua
-2.5, in total, so I created a diff. The commit message isn't about just those
-changes, however; regardless, the diff lives here and is useful to have because
-it can be applied as a patch to the Lua 2.5.1 sources to reproduce Lua 2.5+nw.
-
-Five months or more since I wrote that paragraph, I realize that Dazitzel
-already excised the customizations to Lua 2.5 that Ramsey made to facilitate the
-original implementation of Noweb 3. Dazitzel replaced the customized version of
-Lua 2.5 with the upstream Lua 2.5 and excised all the Lua 2.5 script which
-required those customizations, replacing them with equivalent standard Lua.
-Dazitzel also wrote Lua 3 versions of some or all Lua scripts, so Dazitzel's
-existing work has saved me countless hours of learning, research, and work; Lua
-3 is also closer to Lua 5, not just in version number, but if I recall there
-were major changes when Lua 3 was released which will make the eventual
-transition to Lua 5 easier.
-
-#+name: patch
 #+begin_src diff :tangle src/0002-lua-2.5.1-inout.c.patch
   --- /tmp/lua/inout.c	2025-11-18 17:54:06.123407721 -0700
   +++ /tmp/noweb3/lua-2.5+nw/src/inout.c	2025-11-18 17:54:35.281295458 -0700
@@ -502,7 +495,7 @@ transition to Lua 5 easier.
 
 * TODO replace nwconfig and the top-level makefile with Premake5 [5/7]
 Premake5 is used to obsolete manual configuration of the build, which was
-achieved through edition of the nwconfig makefile included in the main makefile.
+achieved through edition of the nwconfig makefile included in the other makefiles.
 
 #+begin_src clean :noweb yes :tangle build/premake5.lua
   --[[© 2025 Bryce Carson.
@@ -513,9 +506,8 @@ achieved through edition of the nwconfig makefile included in the main makefile.
       filter { "system:linux", "action:gmake" }
       buildoptions { "-std=c99", "-pedantic", "-Wall" }
       targetdir "bin/%{cfg.buildcfg}"
-      -- linkoptions { }
 
-      <<options>>
+      <<premake options for configuration, compilation, linking, and installation>>
       <<vendored lua2 with extensions>>
       <<vendored CII>>
       <<tools>>
@@ -543,16 +535,7 @@ achieved through edition of the nwconfig makefile included in the main makefile.
       }
 #+end_src
 
-The names in the checklist below match the noweb references in the chunk above.
-
-- [X] options
-- [X] tools
-- [X] vendored Lua 2.5.1+nw
-- [X] vendored CII
-- [X] Rammel :: update the premake Lua scripting in this noweb chunk to point to source files relative to the new build script location (the root directory).
-- [ ] =install= Premake5 /action/
-
-** [options] Build-time Configuration Options
+** Premake 5 options for configuration of the build and installation
 All the options for configuring Noweb 3 are also present in Rammel,
 but implemented in Premake5 rather than Make variables.
 
@@ -568,7 +551,7 @@ nested table contains the arguments to the Premake function ~newoption()~, which
 takes the nested table as an argument. All the nested tables in the =opts= table
 are looped over, calling ~newoption()~ for each.
 
-#+begin_src lua :noweb-ref options
+#+begin_src lua :noweb-ref premake options for configuration, compilation, linking, and installation
   local opts = {
     -- Kernel-related Options
     PIPE = {
@@ -711,7 +694,7 @@ are looped over, calling ~newoption()~ for each.
   end
 #+end_src
 
-**** TODO Perhaps use the descriptions in these strings instead of those in the options table. :alternative:
+Perhaps use the descriptions in these strings instead of those in the options table.
 
 - CC :: "the name of an ANSI C compiler"
 - CFLAGS :: "general flags used througout the build"
@@ -757,7 +740,15 @@ example =-lpthread= or =-lm= in some configurations. This is intended for
 bare-board targets when there is indeed no C library available.
 #+end_quote
 
-** [tools, vendored, Rammel's Lua sources, Rammel's C sources, Rammel itself] Build process
+** The overall build process
+This section is about hte build process of:
+
+- tools
+- vendored software
+- Rammel's Lua sources
+- Rammels's C sources
+- Rammel itself
+
 There are several actions that must be taken. These aren't analogous to the
 Premake5 conception of /actions/.
 
@@ -850,7 +841,6 @@ the tools it can thereafter rebuild itself if necessary.
 #+end_src
 
 **** TODO Configure the debug build
-**** TODO Test if the tools still meet the requirements of Rammel
 **** DONE CFLAGS and LFLAGS
 CLOSED: [2026-02-02 Mon 23:57]
 These were set in the old makefile, but I don't have them set here. However,
@@ -911,7 +901,6 @@ the build machine?
 - [X] Patch
 - [ ] Require CVS
 
-**** TODO Make Lua 5.4.8
 **** DONE CII
 CLOSED: [2026-04-23 Thu 00:54]
 Hansen's CII already includes an NT-compatible makefile, so rather than
