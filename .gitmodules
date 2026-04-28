@@ -1,3 +1,0 @@
-[submodule "c-interfaces-and-implementations"]
-	path = vendor/c-interfaces-and-implementations
-	url = git@github.com:drh/cii.git
