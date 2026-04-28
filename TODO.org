@@ -668,9 +668,9 @@ These makefiles direct the compilation of the two main targets, /no/ and
 Lua language.
 
 ** Top-level
-The top-level makefile sits in the build directory.
+The top-level makefile parses the make command-line options and validates them.
 
-#+begin_src makefile :tangle build/Makefile
+#+begin_src makefile :tangle src/Makefile
   $(guile $(load "options.scm"))
 
   # Stop editing. No user-serviceable parts below.
