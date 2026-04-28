@@ -1,26 +1,9 @@
-include ../nwconfig
+$(guile $(load "tangle.scm"))
 
-CONFIG=	$(OUTPUT)/pipes.cfg \
-	$(OUTPUT)/sys.cfg \
-	$(OUTPUT)/noweb.cfg \
-	$(OUTPUT)/util.cfg \
-	$(OUTPUT)/list.nws \
-	$(OUTPUT)/set.nws
-
-FILTERS=	$(OUTPUT)/cat.nws \
-		$(OUTPUT)/stripconds.nws \
-		$(OUTPUT)/xchunks.nws \
-		$(OUTPUT)/lines.nws
-
-STAGES=	$(OUTPUT)/totex.nws \
-	$(OUTPUT)/tohtml.nws \
-	$(OUTPUT)/noidx.nws \
-	$(OUTPUT)/elide.nws \
-	$(OUTPUT)/unmarkup.nws \
-	$(FILTERS)
-
-SCRIPTS=	$(OUTPUT)/tangle \
-		$(OUTPUT)/weave
+CONFIG="$(guile (path-expand '(pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws) output))"
+FILTERS="$(guile (path-expand '(cat.nws stripconds.nws xchunks.nws lines.nws) output))"
+STAGES="$(guile (path-expand '(totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws) output)) $(FILTERS)"
+SCRIPTS="$(guile (path-expand '(tangle weave) output))"
 
 all: $(CONFIG) $(STAGES) $(SCRIPTS)
 
@@ -35,32 +18,18 @@ htmltest: $(CONFIG) $(STAGES) $(SCRIPTS)
 clean:
 
 clobber: clean
-	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS) 2>$(NUL)
+	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS) 2>$(NULL)
 
 install: $(SCRIPTS) $(CONFIG) $(STAGES)
-	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i; done
-	for i in $(SCRIPTS); do cp $$i $(LIB3)/`basename $$i .nws`; done
+	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i;                 done
+	for i in $(SCRIPTS);          do cp                         $$i   $(LIB3)/`basename $$i .nws`; done
 
-$(OUTPUT)/pipes.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rpipes.cfg	$(CPIF) $@
-$(OUTPUT)/sys.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rsys.cfg		$(CPIF) $@
-$(OUTPUT)/noweb.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rnoweb.cfg	$(CPIF) $@
-$(OUTPUT)/util.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rutil.cfg	$(CPIF) $@
-$(OUTPUT)/list.nws:		list.nw;	$(NOTANGLE) list.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/set.nws:		set.nw;		$(NOTANGLE) set.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/totex.nws:		totex.nw;	$(NOTANGLE) totex.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/tohtml.nws:	tohtml.nw;	$(NOTANGLE) tohtml.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/noidx.nws:		noidx.nw;	$(NOTANGLE) noidx.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/elide.nws:		elide.nw;	$(NOTANGLE) elide.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/unmarkup.nws:	unmarkup.nw;	$(NOTANGLE) unmarkup.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/cat.nws:		cat.nw;		$(NOTANGLE) cat.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/stripconds.nws:	stripconds.nw;	$(NOTANGLE) stripconds.nw	$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/xchunks.nws:	xchunks.nw;	$(NOTANGLE) xchunks.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/lines.nws:		lines.nw;	$(NOTANGLE) lines.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/tangle:		tangle.nw;	$(NOTANGLE) tangle.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)/weave:		weave.nw;	$(NOTANGLE) weave.nw		$(TANGLEOPTS) $(CPIF) $@
-
-################################################################
-#
+# Produce rules
+"$(guile (map (lambda (w) (path-expand (cpif (notangle tangle-options w) w) output)) '(list.nw set.nw totex.nw tohtml.nw noidx.nw elide.nw unmarkup.nw cat.nw stripconds.nw xchunks.nw lines.nw tangle.nw weave.nw)))"
+"$(guile (path-expand (cpif (notangle tangle-options config.nw :root pipes.cfg) pipes.cfg) output))"
+"$(guile (path-expand (cpif (notangle tangle-options config.nw :root sys.cfg) sys.cfg) output))"
+"$(guile (path-expand (cpif (notangle tangle-options config.nw :root noweb.cfg) noweb.cfg) output))"
+"$(guile (path-expand (cpif (notangle tangle-options config.nw :root util.cfg) util.cfg) output))"
 
 noidx.tex: noidx.nw
 	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex

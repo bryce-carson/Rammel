@@ -4,7 +4,7 @@
 
 (define (option sym default description validator category)
   (hash-set! options sym
-             (list (cons 'value default)
+             (list (cons 'value #nil)
                    (cons 'default default)
                    (cons 'description description)
                    (cons 'validator validator)
@@ -12,10 +12,11 @@
   default)
 
 (define (option-get sym)
-  (let* ((entry (hash-ref options sym))
-         (val (assq-ref entry 'value)))
-    (if (and entry val)
-        val
+  (let* ((entry (hash-ref options sym)))
+    (if entry
+        (if (nil? (assq-ref entry 'value))
+            (assq-ref entry 'default)
+            (assq-ref entry 'value))
         #f)))
 
 (define (option-set sym val)
@@ -141,3 +142,12 @@
         #nil
         #nil
         "Utilities")
+
+;; Conditionally assign the value of the option, setting it only if it's not
+;; already defined in make.
+(define (option-set-gmk-conditionally opt entry)
+  (gmk-eval (format #f "~a?=~a" opt (option-get opt))))
+(hash-map->list option-set-gmk-conditionally options)
+
+(when (string=? (gmk-expand "$(MAKECMDGOALS)") "help")
+  (option-print))
