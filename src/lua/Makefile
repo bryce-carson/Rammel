@@ -1,4 +1,4 @@
-$(guile $(load "tangle.scm"))
+$(guile (load "tangle.scm"))
 
 CONFIG="$(guile (path-expand '(pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws) output))"
 FILTERS="$(guile (path-expand '(cat.nws stripconds.nws xchunks.nws lines.nws) output))"
@@ -26,10 +26,21 @@ install: $(SCRIPTS) $(CONFIG) $(STAGES)
 
 # Produce rules
 "$(guile (map (lambda (w) (path-expand (cpif (notangle tangle-options w) w) output)) '(list.nw set.nw totex.nw tohtml.nw noidx.nw elide.nw unmarkup.nw cat.nw stripconds.nw xchunks.nw lines.nw tangle.nw weave.nw)))"
-"$(guile (path-expand (cpif (notangle tangle-options config.nw :root pipes.cfg) pipes.cfg) output))"
-"$(guile (path-expand (cpif (notangle tangle-options config.nw :root sys.cfg) sys.cfg) output))"
-"$(guile (path-expand (cpif (notangle tangle-options config.nw :root noweb.cfg) noweb.cfg) output))"
-"$(guile (path-expand (cpif (notangle tangle-options config.nw :root util.cfg) util.cfg) output))"
+
+
+TANGLE=notangle
+$(OUTPUT)/%.c: %.nw
+	$(TANGLE) $(TANGLEOPTS) -L"#line %L \"${$*}.nw\"%N" > $@
+$(OUTPUT)/%.h: %.nw
+	$(TANGLE) $(TANGLEOPTS) -Rheader -L"#line %L \"${$*}.nw\"%N" > $@
+$(OUTPUT)/pipes.cfg:
+	$(TANGLE) $(TANGLEOPTS) -Rpipes.cfg config.nw > $@
+$(OUTPUT)/sys.cfg:
+	$(TANGLE) $(TANGLEOPTS) -Rsys.cfg config.nw > $@
+$(OUTPUT)/pipes.cfg:
+	$(TANGLE) $(TANGLEOPTS) -Rnoweb.cfg config.nw > $@
+$(OUTPUT)/pipes.cfg:
+	$(TANGLE) $(TANGLEOPTS) -Rutil.cfg config.nw > $@
 
 noidx.tex: noidx.nw
 	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
