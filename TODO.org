@@ -586,7 +586,7 @@ modification time of things within a noweb pipe.
 * Guile-validated options
 The options for configuring Rammel are the same as configuring noweb version 3.
 
-#+begin_src scheme :tangle options.scm
+#+begin_src scheme :tangle src/options.scm
   (use-modules (ice-9 format) (srfi srfi-1))
 
   (define options (make-hash-table))
