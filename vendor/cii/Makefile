@@ -5,7 +5,7 @@ include ../nwconfig
 I=include
 MAXALIGN=-DMAXALIGN=$(CIIMAXALIGN)
 CIIFLAGS=-I$I $(MAXALIGN)
-B=$(OUTPUT)$(P)
+B=$(OUTPUT)/
 
 # $Id$
 OBJS=	$Barena$O \

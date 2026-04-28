@@ -1,26 +1,26 @@
 include ../nwconfig
 
-CONFIG=	$(OUTPUT)$(P)pipes.cfg \
-	$(OUTPUT)$(P)sys.cfg \
-	$(OUTPUT)$(P)noweb.cfg \
-	$(OUTPUT)$(P)util.cfg \
-	$(OUTPUT)$(P)list.nws \
-	$(OUTPUT)$(P)set.nws
+CONFIG=	$(OUTPUT)/pipes.cfg \
+	$(OUTPUT)/sys.cfg \
+	$(OUTPUT)/noweb.cfg \
+	$(OUTPUT)/util.cfg \
+	$(OUTPUT)/list.nws \
+	$(OUTPUT)/set.nws
 
-FILTERS=	$(OUTPUT)$(P)cat.nws \
-		$(OUTPUT)$(P)stripconds.nws \
-		$(OUTPUT)$(P)xchunks.nws \
-		$(OUTPUT)$(P)lines.nws
+FILTERS=	$(OUTPUT)/cat.nws \
+		$(OUTPUT)/stripconds.nws \
+		$(OUTPUT)/xchunks.nws \
+		$(OUTPUT)/lines.nws
 
-STAGES=	$(OUTPUT)$(P)totex.nws \
-	$(OUTPUT)$(P)tohtml.nws \
-	$(OUTPUT)$(P)noidx.nws \
-	$(OUTPUT)$(P)elide.nws \
-	$(OUTPUT)$(P)unmarkup.nws \
+STAGES=	$(OUTPUT)/totex.nws \
+	$(OUTPUT)/tohtml.nws \
+	$(OUTPUT)/noidx.nws \
+	$(OUTPUT)/elide.nws \
+	$(OUTPUT)/unmarkup.nws \
 	$(FILTERS)
 
-SCRIPTS=	$(OUTPUT)$(P)tangle \
-		$(OUTPUT)$(P)weave
+SCRIPTS=	$(OUTPUT)/tangle \
+		$(OUTPUT)/weave
 
 all: $(CONFIG) $(STAGES) $(SCRIPTS)
 
@@ -41,23 +41,23 @@ install: $(SCRIPTS) $(CONFIG) $(STAGES)
 	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i; done
 	for i in $(SCRIPTS); do cp $$i $(LIB3)/`basename $$i .nws`; done
 
-$(OUTPUT)$(P)pipes.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rpipes.cfg	$(CPIF) $@
-$(OUTPUT)$(P)sys.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rsys.cfg		$(CPIF) $@
-$(OUTPUT)$(P)noweb.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rnoweb.cfg	$(CPIF) $@
-$(OUTPUT)$(P)util.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rutil.cfg	$(CPIF) $@
-$(OUTPUT)$(P)list.nws:		list.nw;	$(NOTANGLE) list.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)set.nws:		set.nw;		$(NOTANGLE) set.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)totex.nws:		totex.nw;	$(NOTANGLE) totex.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)tohtml.nws:	tohtml.nw;	$(NOTANGLE) tohtml.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)noidx.nws:		noidx.nw;	$(NOTANGLE) noidx.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)elide.nws:		elide.nw;	$(NOTANGLE) elide.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)unmarkup.nws:	unmarkup.nw;	$(NOTANGLE) unmarkup.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)cat.nws:		cat.nw;		$(NOTANGLE) cat.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)stripconds.nws:	stripconds.nw;	$(NOTANGLE) stripconds.nw	$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)xchunks.nws:	xchunks.nw;	$(NOTANGLE) xchunks.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)lines.nws:		lines.nw;	$(NOTANGLE) lines.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)tangle:		tangle.nw;	$(NOTANGLE) tangle.nw		$(TANGLEOPTS) $(CPIF) $@
-$(OUTPUT)$(P)weave:		weave.nw;	$(NOTANGLE) weave.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/pipes.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rpipes.cfg	$(CPIF) $@
+$(OUTPUT)/sys.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rsys.cfg		$(CPIF) $@
+$(OUTPUT)/noweb.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rnoweb.cfg	$(CPIF) $@
+$(OUTPUT)/util.cfg:		config.nw;	$(NOTANGLE) config.nw		$(TANGLEOPTS) -Rutil.cfg	$(CPIF) $@
+$(OUTPUT)/list.nws:		list.nw;	$(NOTANGLE) list.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/set.nws:		set.nw;		$(NOTANGLE) set.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/totex.nws:		totex.nw;	$(NOTANGLE) totex.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/tohtml.nws:	tohtml.nw;	$(NOTANGLE) tohtml.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/noidx.nws:		noidx.nw;	$(NOTANGLE) noidx.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/elide.nws:		elide.nw;	$(NOTANGLE) elide.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/unmarkup.nws:	unmarkup.nw;	$(NOTANGLE) unmarkup.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/cat.nws:		cat.nw;		$(NOTANGLE) cat.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/stripconds.nws:	stripconds.nw;	$(NOTANGLE) stripconds.nw	$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/xchunks.nws:	xchunks.nw;	$(NOTANGLE) xchunks.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/lines.nws:		lines.nw;	$(NOTANGLE) lines.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/tangle:		tangle.nw;	$(NOTANGLE) tangle.nw		$(TANGLEOPTS) $(CPIF) $@
+$(OUTPUT)/weave:		weave.nw;	$(NOTANGLE) weave.nw		$(TANGLEOPTS) $(CPIF) $@
 
 ################################################################
 #

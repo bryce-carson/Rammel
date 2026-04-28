@@ -12,10 +12,7 @@ PIPE=spawn
 # the set of commented out macros are for a windows environment.
 
 # What file and PATH conventions should Noweb use (unix or win)?
-PLATFORM=unix
-P=/
-#PLATFORM=win
-#P=^\
+PLATFORM=unix #PLATFORM=win
 
 ################################################################
 #
@@ -27,30 +24,12 @@ P=/
 BINDIR=/h/nr/machine/amd64-linux/bin
 TEXINPUTS=/usr/share/texmf/tex/latex/local
 LIB3=/h/nr/machine/amd64-linux/lib/noweb3
-#BINDIR=c:\users\Public\documents\noweb3\bin
-#TEXINPUTS=C:\Users\Public\tex
-#LIB3=c:\users\Public\documents\noweb3
 
-################################################################
-#
-# Lua kludges --- here because we know we are moving to Lua 5.
 LuaMakefile=
-#LuaMakefile=-f Makefile.win
 
-################################################################
-#
-#  information about your system
 SHELL=/bin/sh
-CINAME=
-CIMSG=
 NUL=/dev/null
-#NUL=NUL:
 
-################################################################
-#
-#  information about your build system
-
-# make
 MK=make
 #MK=nmake /nologo /s
 
