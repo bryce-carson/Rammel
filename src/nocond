@@ -1,3 +1,0 @@
-#!/bin/sh
-# "A filter that can help build Noweb 3 from sources." --Norman Ramsey
-sed "/^@defn/s/ *(($*))//"

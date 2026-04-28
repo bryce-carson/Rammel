@@ -1,8 +1,0 @@
-0001-luamem.patch fixes an issue with the 2.5.1-tagged version of Lua's C
-sources. It is otherwise unrelated to Rammel's sources, but this patch is not
-vendored software so it is in this src subdirectory rather than the vendor
-subdirectory.
-
-0002-lua-2.5.1-inout.c.patch fixes another issue with Lua's sources.
-
-Makefile is the former nwconfig.
