@@ -883,7 +883,7 @@ The top-level makefile parses the make command-line options and validates them.
 
 ** C
 #+begin_src makefile
-  $(guile $(load "tangle.scm"))
+  $(guile (load "tangle.scm"))
 
   ################################################################
   # CII is directory where you installed CII ($BUILDDIR)
@@ -1118,11 +1118,12 @@ The top-level makefile parses the make command-line options and validates them.
   $(OUTPUT)/xpipe$(O): $(OUTPUT)/errors.h $(OUTPUT)/nwprocess.h $(OUTPUT)/sys.h $(OUTPUT)/util.h $(OUTPUT)/xpipe.c $(OUTPUT)/xpipe.h
   $(OUTPUT)/xpipe-lua$(O): $(OUTPUT)/cargs.h $(OUTPUT)/lua-help.h $(OUTPUT)/xpipe.h $(OUTPUT)/xpipe-lua.c $(OUTPUT)/xpipe-lua.h
 #+end_src
+
 ** Lua
 Below is the original =src/lua/Makefile=.
 
 #+begin_src makefile :tangle src/lua/Makefile
-  $(guile $(load "tangle.scm"))
+  $(guile (load "tangle.scm"))
 
   CONFIG="$(guile (path-expand '(pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws) output))"
   FILTERS="$(guile (path-expand '(cat.nws stripconds.nws xchunks.nws lines.nws) output))"
